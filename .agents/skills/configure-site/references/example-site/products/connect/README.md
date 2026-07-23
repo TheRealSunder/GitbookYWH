@@ -1,6 +1,8 @@
 ---
+description: >-
+  Embed payments in your platform — accept money on behalf of your sellers, take
+  a cut, and pay them out.
 icon: circles-overlap
-description: Embed payments in your platform — accept money on behalf of your sellers, take a cut, and pay them out.
 cover: .gitbook/assets/connect-cover.png
 coverY: 0
 layout:
@@ -8,6 +10,7 @@ layout:
   cover:
     visible: true
     size: full
+    mask: none
   title:
     visible: true
   description:
@@ -21,6 +24,8 @@ layout:
   metadata:
     visible: true
   tags:
+    visible: true
+  actions:
     visible: true
 ---
 
@@ -79,7 +84,7 @@ Try a persona to see adaptive content in action across the site:
 **Evaluating Connect for your platform?** The basics of how the buyer/seller/platform money flow works.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-circles-overlap" style="color:$primary;">:circles-overlap:</i></h3></td><td><h3><strong>How Connect fits</strong></h3></td><td>Buyer, seller, platform — and the money flow between them.</td><td><a href="README.md">connect</a></td></tr><tr><td><h3><i class="fa-percent" style="color:$primary;">:percent:</i></h3></td><td><strong>Splitting payments</strong></td><td>Application fees, flat fees, conditional rules.</td><td><a href="platform-setup/splitting-payments.md">splitting-payments</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-circles-overlap" style="color:$primary;">:circles-overlap:</i></h3></td><td><h3><strong>How Connect fits</strong></h3></td><td>Buyer, seller, platform — and the money flow between them.</td><td><a href="./">.</a></td></tr><tr><td><h3><i class="fa-percent" style="color:$primary;">:percent:</i></h3></td><td><strong>Splitting payments</strong></td><td>Application fees, flat fees, conditional rules.</td><td><a href="platform-setup/splitting-payments.md">splitting-payments.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "new" %}
@@ -87,7 +92,7 @@ Try a persona to see adaptive content in action across the site:
 **New to Connect?** Onboard your first test seller in five minutes.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Onboard your first seller</strong></h3></td><td>End-to-end walkthrough — connected account, hosted onboarding, first transfer.</td><td><a href="quickstart/onboard-your-first-seller.md">onboard-your-first-seller</a></td></tr><tr><td><h3><i class="fa-window-maximize" style="color:$primary;">:window-maximize:</i></h3></td><td><strong>Pick a checkout shape</strong></td><td>Hosted, embedded, or fully custom buyer experience.</td><td><a href="embedded-checkout/hosted-vs-embedded.md">hosted-vs-embedded</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Onboard your first seller</strong></h3></td><td>End-to-end walkthrough — connected account, hosted onboarding, first transfer.</td><td><a href="quickstart/onboard-your-first-seller.md">onboard-your-first-seller.md</a></td></tr><tr><td><h3><i class="fa-window-maximize" style="color:$primary;">:window-maximize:</i></h3></td><td><strong>Pick a checkout shape</strong></td><td>Hosted, embedded, or fully custom buyer experience.</td><td><a href="embedded-checkout/hosted-vs-embedded.md">hosted-vs-embedded.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "existing" %}
@@ -95,7 +100,7 @@ Try a persona to see adaptive content in action across the site:
 **Coming from Stripe Connect?** Connected accounts, application fees, and transfers all work the same. Account types are unified.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>The full cutover plan, including Connect-specifics.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/migrate-from-stripe">migrate-from-stripe</a></td></tr><tr><td><h3><i class="fa-user-plus" style="color:$primary;">:user-plus:</i></h3></td><td><strong>Onboarding sellers</strong></td><td>The unified account model that replaces Express/Standard/Custom.</td><td><a href="platform-setup/onboarding-sellers.md">onboarding-sellers</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>The full cutover plan, including Connect-specifics.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/migrate-from-stripe">Migrate from Stripe</a></td></tr><tr><td><h3><i class="fa-user-plus" style="color:$primary;">:user-plus:</i></h3></td><td><strong>Onboarding sellers</strong></td><td>The unified account model that replaces Express/Standard/Custom.</td><td><a href="platform-setup/onboarding-sellers.md">onboarding-sellers.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "partner" %}
@@ -103,7 +108,7 @@ Try a persona to see adaptive content in action across the site:
 **Building a custom platform?** White-label embedded checkout, custom seller onboarding, consolidated KYC are Enterprise capabilities.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><h3><strong>Custom Connect onboarding</strong></h3></td><td>Programmatic onboarding for teams that want their own UX.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/custom-onboarding">custom-onboarding</a></td></tr><tr><td><h3><i class="fa-paint-roller" style="color:$primary;">:paint-roller:</i></h3></td><td><strong>White-label checkout</strong></td><td>Per-seller domains, fonts, custom CSS for premium sellers.</td><td><a href="embedded-checkout/customization.md">customization</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><h3><strong>Custom Connect onboarding</strong></h3></td><td>Programmatic onboarding for teams that want their own UX.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/custom-onboarding">Build a custom Connect onboarding flow</a></td></tr><tr><td><h3><i class="fa-paint-roller" style="color:$primary;">:paint-roller:</i></h3></td><td><strong>White-label checkout</strong></td><td>Per-seller domains, fonts, custom CSS for premium sellers.</td><td><a href="embedded-checkout/customization.md">customization.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona %}
@@ -114,7 +119,7 @@ Try a persona to see adaptive content in action across the site:
 ## Get started
 {% endif %}
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><strong>Quickstart</strong></td><td>Onboard your first seller in five minutes.</td><td><a href="quickstart/onboard-your-first-seller.md">onboard-your-first-seller</a></td></tr><tr><td><h3><i class="fa-window-maximize" style="color:$primary;">:window-maximize:</i></h3></td><td><strong>Embedded checkout</strong></td><td>The buyer-facing flow — hosted, embedded, or fully custom.</td><td><a href="embedded-checkout/README.md">embedded-checkout</a></td></tr><tr><td><h3><i class="fa-sliders" style="color:$primary;">:sliders:</i></h3></td><td><strong>Platform setup</strong></td><td>Onboarding, splitting, payouts, and dispute handling.</td><td><a href="platform-setup/README.md">platform-setup</a></td></tr><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><strong>API reference</strong></td><td>Endpoints, SDKs, and try-it.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/connect-api/">connect-api</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><strong>Quickstart</strong></td><td>Onboard your first seller in five minutes.</td><td><a href="quickstart/onboard-your-first-seller.md">onboard-your-first-seller.md</a></td></tr><tr><td><h3><i class="fa-window-maximize" style="color:$primary;">:window-maximize:</i></h3></td><td><strong>Embedded checkout</strong></td><td>The buyer-facing flow — hosted, embedded, or fully custom.</td><td><a href="embedded-checkout/">embedded-checkout</a></td></tr><tr><td><h3><i class="fa-sliders" style="color:$primary;">:sliders:</i></h3></td><td><strong>Platform setup</strong></td><td>Onboarding, splitting, payouts, and dispute handling.</td><td><a href="platform-setup/">platform-setup</a></td></tr><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><strong>API reference</strong></td><td>Endpoints, SDKs, and try-it.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/connect-api">Connect API</a></td></tr></tbody></table>
 
 ## Where Connect fits
 
@@ -122,27 +127,21 @@ A typical Connect transaction touches three parties — the **buyer**, the **sel
 
 {% columns %}
 {% column width="33%" %}
-
 ### <i class="fa-cart-shopping" style="color:$primary;">:cart-shopping:</i> Buyer
 
 Pays once, sees one charge on their statement (yours or the seller's, your choice). Refunds and support flow back through your platform.
-
 {% endcolumn %}
 
 {% column width="33%" %}
-
 ### <i class="fa-store" style="color:$primary;">:store:</i> Seller
 
 Onboarded once via your platform, then receives payouts on a schedule you set. Their identity, banking, and tax records are handled by [Identity](https://enterprise-demos.gitbook.io/evolve-docs/identity).
-
 {% endcolumn %}
 
 {% column width="33%" %}
-
 ### <i class="fa-circles-overlap" style="color:$primary;">:circles-overlap:</i> Platform
 
 Takes a percentage of each transaction as an application fee, plus optional flat fees. Sees consolidated reporting across all sellers in one dashboard.
-
 {% endcolumn %}
 {% endcolumns %}
 

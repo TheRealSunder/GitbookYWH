@@ -1,6 +1,8 @@
 ---
+description: >-
+  Connected accounts, splits, payouts, marketplace patterns — the most-asked
+  Connect questions.
 icon: circles-overlap
-description: Connected accounts, splits, payouts, marketplace patterns — the most-asked Connect questions.
 ---
 
 # Connect questions
@@ -15,13 +17,13 @@ If you're not sure: ask "does the money belong to me, or to someone using my pro
 
 Growth or Enterprise. Starter doesn't include Connect.
 
-| | Growth | Enterprise |
-| --- | --- | --- |
-| Connected accounts | Up to 100 | Unlimited |
-| Hosted onboarding | ✅ | ✅ |
-| Embedded checkout | — | ✅ |
-| Custom (white-label) onboarding | — | ✅ |
-| Per-seller dispute routing | ✅ | ✅ |
+|                                 | Growth    | Enterprise |
+| ------------------------------- | --------- | ---------- |
+| Connected accounts              | Up to 100 | Unlimited  |
+| Hosted onboarding               | ✅         | ✅          |
+| Embedded checkout               | —         | ✅          |
+| Custom (white-label) onboarding | —         | ✅          |
+| Per-seller dispute routing      | ✅         | ✅          |
 
 For the full per-tier breakdown, see [Connect → Plan availability](https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/#plan-availability).
 
@@ -29,14 +31,14 @@ For the full per-tier breakdown, see [Connect → Plan availability](https://app
 
 Two integration shapes:
 
-* **Hosted** — Evolve generates an onboarding URL, you email it to the seller. Most platforms launch with this. The walkthrough is in the [Onboard your first sellers tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/onboard-sellers).
-* **Custom** — Enterprise-only. You build your own forms; data is submitted programmatically to Evolve. See [Build a custom Connect onboarding flow](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/custom-onboarding).
+* **Hosted** — Evolve generates an onboarding URL, you email it to the seller. Most platforms launch with this. The walkthrough is in the [Onboard your first sellers tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/onboard-sellers).
+* **Custom** — Enterprise-only. You build your own forms; data is submitted programmatically to Evolve. See [Build a custom Connect onboarding flow](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/custom-onboarding).
 
 Most teams should use hosted unless brand standards or specific UX requirements demand custom. Hosted updates automatically as KYC requirements change; custom requires you to keep up.
 
 ## Why is my seller's account `restricted`?
 
-Risk team has flagged something. The seller's record in **Connect → Connected accounts → [account] → Status** shows the specific reason. Common ones:
+Risk team has flagged something. The seller's record in **Connect → Connected accounts → \[account] → Status** shows the specific reason. Common ones:
 
 * High dispute rate (above 1%)
 * Sudden volume spike that triggers fraud screening
@@ -59,7 +61,7 @@ POST /v2/checkout_sessions
 }
 ```
 
-That's $100 to the buyer, $98 transferred to the seller, $2 to your platform. The [split-payments tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/split-payments) covers conditional fee logic (per-seller-tier, per-product-category, etc.).
+That's $100 to the buyer, $98 transferred to the seller, $2 to your platform. The [split-payments tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/split-payments) covers conditional fee logic (per-seller-tier, per-product-category, etc.).
 
 ## How are processing fees split between platform and seller?
 
@@ -71,7 +73,7 @@ Most marketplaces with thin take-rates pass through to sellers. Most marketplace
 
 Yes. The platform sets the default in **Connect → Settings → Default payout schedule**. Sellers can override their own (within the schedules you allow) from their seller portal.
 
-For on-demand payouts (seller taps "Pay me now" for instant cash), enable in **Connect → Settings → Instant payouts**. The 1% fee can be paid by seller, platform, or split. Available on Enterprise. See [payout-schedules tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/payout-schedules).
+For on-demand payouts (seller taps "Pay me now" for instant cash), enable in **Connect → Settings → Instant payouts**. The 1% fee can be paid by seller, platform, or split. Available on Enterprise. See [payout-schedules tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/payout-schedules).
 
 ## What happens to disputes on a Connect platform?
 
@@ -81,7 +83,7 @@ The **platform is the merchant of record** — disputes are filed against the pl
 * **Platform absorbs** — for premium-tier sellers as a perk.
 * **Split** — platform takes the fee, seller takes the disputed amount.
 
-Set the default in **Connect → Settings → Dispute policy**, override per-seller. For evidence collection, most platforms delegate to the seller — see [disputes-at-scale tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/disputes-at-scale).
+Set the default in **Connect → Settings → Dispute policy**, override per-seller. For evidence collection, most platforms delegate to the seller — see [disputes-at-scale tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/disputes-at-scale).
 
 ## Why is a seller's payout `failed`?
 
@@ -106,5 +108,5 @@ Most Connect platforms use destination charges — buyers see a consistent platf
 
 * [Community: Stuck Connect payouts](https://gitbookio.github.io/evolve-demo/connections/community/connect-payout-stuck.html)
 * [YouTube: Chargebacks at scale](https://gitbookio.github.io/evolve-demo/connections/youtube/chargebacks-at-scale.html)
-* [Connect product space](https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/)
+* [Connect product space](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Xtfxb7OHGyrdfIsObmnu/)
 * [Tutorials: Run a marketplace with Connect](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/#run-a-marketplace-with-connect)

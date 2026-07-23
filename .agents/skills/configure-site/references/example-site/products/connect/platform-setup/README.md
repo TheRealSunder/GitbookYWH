@@ -1,11 +1,13 @@
 ---
+description: >-
+  The platform-side configuration — onboarding sellers, splitting payments,
+  paying them out, and handling disputes.
 icon: sliders
-description: The platform-side configuration — onboarding sellers, splitting payments, paying them out, and handling disputes.
 ---
 
 # Platform setup
 
-This section covers everything that happens on the platform side of Connect — separate from the buyer-facing [embedded checkout](../embedded-checkout/README.md). These are the configurations and workflows that run *behind* the buyer experience: how sellers join your platform, how each payment is split, how sellers get paid out, and how you handle the messy moments (refunds, disputes, terminations).
+This section covers everything that happens on the platform side of Connect — separate from the buyer-facing [embedded checkout](../embedded-checkout/). These are the configurations and workflows that run _behind_ the buyer experience: how sellers join your platform, how each payment is split, how sellers get paid out, and how you handle the messy moments (refunds, disputes, terminations).
 
 Most of this is configured once at platform launch and tweaked occasionally as your business scales. The exception is the daily operational work — issuing refunds, responding to disputes, onboarding new sellers — which lives in the same dashboards your team uses every day.
 
@@ -37,12 +39,12 @@ Both balances pay out independently on their own schedules. The platform's balan
 
 Connect introduces a few platform-specific roles you may want to set up:
 
-| Role | What they do |
-| --- | --- |
-| **Seller success** | Helps new sellers complete onboarding, troubleshoots verification failures. |
-| **Operations** | Issues refunds the seller can't or won't, escalates disputes, manages risk holds. |
-| **Compliance** | Reviews flagged sellers, manages seller terminations, runs periodic re-KYC. |
-| **Finance** | Reconciles the platform's settlement, handles platform-level reporting. |
+| Role               | What they do                                                                      |
+| ------------------ | --------------------------------------------------------------------------------- |
+| **Seller success** | Helps new sellers complete onboarding, troubleshoots verification failures.       |
+| **Operations**     | Issues refunds the seller can't or won't, escalates disputes, manages risk holds. |
+| **Compliance**     | Reviews flagged sellers, manages seller terminations, runs periodic re-KYC.       |
+| **Finance**        | Reconciles the platform's settlement, handles platform-level reporting.           |
 
 You can configure granular dashboard permissions per role in **Settings → Team → Roles**. Most platforms give Seller Success access to seller details and onboarding flow, but not to platform-level financial data.
 
@@ -58,23 +60,19 @@ Both reports are exportable via [scheduled exports](https://app.gitbook.com/s/w3
 ## Plan considerations
 
 {% if visitor.claims.unsigned.plan === "growth" %}
-
 {% hint style="info" icon="layer-group" %}
 **You're on Growth** — up to 100 connected accounts. The full Connect feature set is available, with the volume cap as the only differentiator from Enterprise.
 {% endhint %}
-
 {% endif %}
 
 {% if visitor.claims.unsigned.plan === "enterprise" %}
-
 {% hint style="success" icon="layer-group" %}
 **You're on Enterprise** — unlimited accounts, plus white-label embedded checkout, custom onboarding workflows, and consolidated KYC across all sellers. Talk to your account team for the platform-launch playbook.
 {% endhint %}
-
 {% endif %}
 
 ## Related
 
-* [Connect overview](../README.md) — high-level on what Connect is.
-* [Payments](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/) — Connect inherits everything from Payments.
+* [Connect overview](../) — high-level on what Connect is.
+* [Payments](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/) — Connect inherits everything from Payments.
 * [Identity verification](https://app.gitbook.com/s/w7NRnYZuokE4h1mm2pJB/verification-flows) — used for seller onboarding.

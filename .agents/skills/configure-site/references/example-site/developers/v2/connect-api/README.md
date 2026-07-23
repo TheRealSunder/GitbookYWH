@@ -1,6 +1,8 @@
 ---
+description: >-
+  Connected accounts, transfers, and checkout sessions for marketplace
+  platforms.
 icon: circles-overlap
-description: Connected accounts, transfers, and checkout sessions for marketplace platforms.
 ---
 
 # Connect API
@@ -44,13 +46,13 @@ That charges the buyer $100, transfers $98 to the seller's connected account, an
 
 Two patterns for routing a payment to a seller:
 
-| Pattern | When to use |
-| --- | --- |
-| **Direct charge** | The seller is the merchant of record. Set `Evolve-Account: acct_*` header on the charge. The seller's statement descriptor appears on the buyer's card statement. |
+| Pattern                | When to use                                                                                                                                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Direct charge**      | The seller is the merchant of record. Set `Evolve-Account: acct_*` header on the charge. The seller's statement descriptor appears on the buyer's card statement.                                                         |
 | **Destination charge** | The platform is the merchant of record. Charge happens on the platform; a transfer moves the funds to the connected account. The platform's descriptor appears on the buyer's statement. Most Connect platforms use this. |
 
 Choose at the platform level by setting your default in **Connect → Settings → Charge type** in the dashboard. Override per checkout session if needed.
 
 ## Conceptual background
 
-For the product-side concepts — onboarding flow, payout scheduling, dispute routing, refund splits — see the [Connect product space](https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/).
+For the product-side concepts — onboarding flow, payout scheduling, dispute routing, refund splits — see the [Connect product space](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Xtfxb7OHGyrdfIsObmnu/).

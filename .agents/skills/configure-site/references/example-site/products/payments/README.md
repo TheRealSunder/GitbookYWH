@@ -8,6 +8,7 @@ layout:
   cover:
     visible: true
     size: full
+    mask: none
   title:
     visible: true
   description:
@@ -21,6 +22,8 @@ layout:
   metadata:
     visible: true
   tags:
+    visible: true
+  actions:
     visible: true
 ---
 
@@ -67,18 +70,10 @@ Try a persona to see adaptive content in action across the site:
 <a href="https://enterprise-demos.gitbook.io/evolve-docs/payments?visitor.persona=prospect" class="button secondary" data-icon="bag-shopping">Prospect</a> <a href="https://enterprise-demos.gitbook.io/evolve-docs/payments?visitor.persona=new&#x26;plan=starter" class="button secondary" data-icon="arrow-right-to-bracket">New user</a> <a href="https://enterprise-demos.gitbook.io/evolve-docs/payments?visitor.persona=existing&#x26;visitor.plan=growth" class="button secondary" data-icon="rocket">Migrator</a> <a class="button primary" data-icon="handshake-angle">Partner</a>
 {% endif %}
 {% endhint %}
-
-
 {% endcolumn %}
 {% endcolumns %}
 
-
-
-
-
 ***
-
-
 
 ## <i class="fa-sparkle" style="color:$info;">:sparkle:</i> Picked for you
 
@@ -95,7 +90,7 @@ Try a persona to see adaptive content in action across the site:
 **New to Evolve Payments?** The dashboard works on its own — get a real test charge in five minutes, no code required.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Accept your first payment</strong></h3></td><td>Take your first test payment in five minutes — no integration required.</td><td><a href="quickstart/accept-your-first-payment.md">accept-your-first-payment</a></td></tr><tr><td><h3><i class="fa-flask" style="color:$primary;">:flask:</i></h3></td><td><h3><strong>Test mode and live mode</strong></h3></td><td>What changes when you flip from test to live, and the cutover checklist.</td><td><a href="quickstart/test-and-live-mode.md">test-and-live-mode</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Accept your first payment</strong></h3></td><td>Take your first test payment in five minutes — no integration required.</td><td><a href="quickstart/accept-your-first-payment.md">accept-your-first-payment.md</a></td></tr><tr><td><h3><i class="fa-flask" style="color:$primary;">:flask:</i></h3></td><td><h3><strong>Test mode and live mode</strong></h3></td><td>What changes when you flip from test to live, and the cutover checklist.</td><td><a href="quickstart/test-and-live-mode.md">test-and-live-mode.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "existing" %}
@@ -103,7 +98,7 @@ Try a persona to see adaptive content in action across the site:
 **Migrating from Stripe?** Most APIs map cleanly. Start with the migration guide and the saved-method patterns.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>Field mapping, parallel-run pattern, and the cutover checklist.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/migrate-from-stripe">migrate-from-stripe</a></td></tr><tr><td><h3><i class="fa-bookmark" style="color:$primary;">:bookmark:</i></h3></td><td><h3><strong>Save cards for repeat customers</strong></h3></td><td>How Stripe's Customer/PaymentMethod model maps to Evolve.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/save-cards">save-cards</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>Field mapping, parallel-run pattern, and the cutover checklist.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/migrate-from-stripe">Migrate from Stripe</a></td></tr><tr><td><h3><i class="fa-bookmark" style="color:$primary;">:bookmark:</i></h3></td><td><h3><strong>Save cards for repeat customers</strong></h3></td><td>How Stripe's Customer/PaymentMethod model maps to Evolve.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/save-cards">Save cards for repeat customers</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "partner" %}
@@ -111,7 +106,7 @@ Try a persona to see adaptive content in action across the site:
 **Setting up enterprise features?** Smart routing, failover, and same-day payouts are the highest-leverage Enterprise capabilities.
 {% endhint %}
 
-<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-route" style="color:$primary;">:route:</i></h3></td><td><h3><strong>Smart routing</strong></h3></td><td>Per-network success-rate optimization. 1–3% lift in approval rate.</td><td><a href="accept-payments/smart-routing.md">smart-routing</a></td></tr><tr><td><h3><i class="fa-arrows-spin" style="color:$primary;">:arrows-spin:</i></h3></td><td><h3><strong>Failover and retries</strong></h3></td><td>Stay up when an acquirer or network goes down.</td><td><a href="accept-payments/failover.md">failover</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-route" style="color:$primary;">:route:</i></h3></td><td><h3><strong>Smart routing</strong></h3></td><td>Per-network success-rate optimization. 1–3% lift in approval rate.</td><td><a href="accept-payments/smart-routing.md">smart-routing.md</a></td></tr><tr><td><h3><i class="fa-arrows-spin" style="color:$primary;">:arrows-spin:</i></h3></td><td><h3><strong>Failover and retries</strong></h3></td><td>Stay up when an acquirer or network goes down.</td><td><a href="accept-payments/failover.md">failover.md</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona %}
@@ -122,9 +117,7 @@ Try a persona to see adaptive content in action across the site:
 ## Get started
 {% endif %}
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><strong>Quickstart</strong></td><td>Take your first test payment in five minutes.</td><td><a href="quickstart/accept-your-first-payment.md">accept-your-first-payment.md</a></td></tr><tr><td><h3><i class="fa-book-open" style="color:$primary;">:book-open:</i></h3></td><td><strong>Concepts</strong></td><td>How payments move through Evolve.</td><td><a href="concepts/payment-lifecycle.md">payment-lifecycle.md</a></td></tr><tr><td><h3><i class="fa-bolt" style="color:$primary;">:bolt:</i></h3></td><td><strong>Accept payments</strong></td><td>Charges, saved methods, 3-D Secure, routing.</td><td><a href="accept-payments/">accept-payments</a></td></tr><tr><td><h3><i class="fa-scale-balanced" style="color:$primary;">:scale-balanced:</i></h3></td><td><strong>Reconciliation</strong></td><td>Settlement files, refunds, disputes.</td><td><a href="reconciliation/">reconciliation</a></td></tr><tr><td><h3><i class="fa-chart-line" style="color:$primary;">:chart-line:</i></h3></td><td><strong>Reporting</strong></td><td>Daily reports, exports, and finance pushes.</td><td><a href="reporting/">reporting</a></td></tr><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><strong>API reference</strong></td><td>Endpoints, SDKs, and try-it.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/payments-api/">payments-api</a></td></tr></tbody></table>
-
-
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><strong>Quickstart</strong></td><td>Take your first test payment in five minutes.</td><td><a href="quickstart/accept-your-first-payment.md">accept-your-first-payment.md</a></td></tr><tr><td><h3><i class="fa-book-open" style="color:$primary;">:book-open:</i></h3></td><td><strong>Concepts</strong></td><td>How payments move through Evolve.</td><td><a href="concepts/payment-lifecycle.md">payment-lifecycle.md</a></td></tr><tr><td><h3><i class="fa-bolt" style="color:$primary;">:bolt:</i></h3></td><td><strong>Accept payments</strong></td><td>Charges, saved methods, 3-D Secure, routing.</td><td><a href="accept-payments/">accept-payments</a></td></tr><tr><td><h3><i class="fa-scale-balanced" style="color:$primary;">:scale-balanced:</i></h3></td><td><strong>Reconciliation</strong></td><td>Settlement files, refunds, disputes.</td><td><a href="reconciliation/">reconciliation</a></td></tr><tr><td><h3><i class="fa-chart-line" style="color:$primary;">:chart-line:</i></h3></td><td><strong>Reporting</strong></td><td>Daily reports, exports, and finance pushes.</td><td><a href="reporting/">reporting</a></td></tr><tr><td><h3><i class="fa-code" style="color:$primary;">:code:</i></h3></td><td><strong>API reference</strong></td><td>Endpoints, SDKs, and try-it.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/payments-api">Payments API</a></td></tr></tbody></table>
 
 ## What's new
 

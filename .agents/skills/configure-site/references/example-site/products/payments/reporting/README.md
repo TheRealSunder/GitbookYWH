@@ -1,5 +1,7 @@
 ---
-description: See what your business is doing — by day, by product, by customer, by acquirer.
+description: >-
+  See what your business is doing — by day, by product, by customer, by
+  acquirer.
 icon: chart-line
 ---
 
@@ -8,19 +10,15 @@ icon: chart-line
 Everything that happens in Evolve is queryable. Reports turn raw events into the views your team actually looks at — daily revenue, top customers, decline reasons, dispute rates, the lift from smart routing. They're available in the dashboard, exportable to CSV, and pushable to your data warehouse.
 
 {% if visitor.claims.unsigned.persona === "partner" %}
-
 {% hint style="info" icon="building" %}
 **Setting up reporting at the enterprise level?** You'll likely want **scheduled exports** to your warehouse so your BI tool is the source of truth, not the dashboard. Skip ahead to [Sharing and scheduled exports](sharing-exports.md).
 {% endhint %}
-
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "new" %}
-
 {% hint style="info" icon="hand-wave" %}
 **New to Evolve?** The fastest way to get a feel for what's possible is to open [Standard reports](standard-reports.md) — they're already populated with your test-mode activity.
 {% endhint %}
-
 {% endif %}
 
 ## What reports give you
@@ -31,15 +29,15 @@ Everything that happens in Evolve is queryable. Reports turn raw events into the
 
 A few examples of what falls out of the standard reports:
 
-| Question | Report |
-| --- | --- |
-| What did we make yesterday, after fees? | Daily revenue |
-| Which payment methods are growing? | Methods over time |
-| What's our approval rate, and is smart routing helping? | Routing report |
-| Which customers are top of the LTV chart? | Top customers |
-| What's our dispute rate this quarter? | Dispute report |
-| Why did this batch of payments fail? | Decline reasons |
-| Did we collect enough to cover the upcoming payouts? | Cash position |
+| Question                                                | Report            |
+| ------------------------------------------------------- | ----------------- |
+| What did we make yesterday, after fees?                 | Daily revenue     |
+| Which payment methods are growing?                      | Methods over time |
+| What's our approval rate, and is smart routing helping? | Routing report    |
+| Which customers are top of the LTV chart?               | Top customers     |
+| What's our dispute rate this quarter?                   | Dispute report    |
+| Why did this batch of payments fail?                    | Decline reasons   |
+| Did we collect enough to cover the upcoming payouts?    | Cash position     |
 
 ## How reports stay fresh
 
@@ -52,12 +50,12 @@ A few examples of what falls out of the standard reports:
 
 Reports respect your role's data scope:
 
-| Role | Can see |
-| --- | --- |
-| Viewer | Aggregate reports, no per-customer data |
-| Finance | Everything in this section, plus settlement files |
-| Ops | Aggregate reports + per-customer history needed to support |
-| Admin | Everything, plus permission to schedule and share |
+| Role    | Can see                                                    |
+| ------- | ---------------------------------------------------------- |
+| Viewer  | Aggregate reports, no per-customer data                    |
+| Finance | Everything in this section, plus settlement files          |
+| Ops     | Aggregate reports + per-customer history needed to support |
+| Admin   | Everything, plus permission to schedule and share          |
 
 Configure in **Settings → Team → Roles**.
 
@@ -65,4 +63,4 @@ Configure in **Settings → Team → Roles**.
 
 * [Settlement files](../reconciliation/settlement-files.md) — the source data for all finance reports.
 * [Smart routing](../accept-payments/smart-routing.md) — what the Routing report measures.
-* [Guides / Integrations](https://app.gitbook.com/s/MBT3EDUK7DzXmR0k9cje/) — pre-built connectors to QuickBooks, NetSuite, Looker, and more.
+* [Guides / Integrations](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/MBT3EDUK7DzXmR0k9cje/) — pre-built connectors to QuickBooks, NetSuite, Looker, and more.

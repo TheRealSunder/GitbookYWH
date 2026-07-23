@@ -50,4 +50,4 @@ When v3 graduates to stable, we'll publish a migration tool. For now, treat v3 a
 
 ## Conceptual background
 
-For the product-side concepts behind these endpoints — what a charge actually does, how settlement timing works, when 3-D Secure applies — see the [Payments product space](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/). It's the right complement to the API reference.
+For the product-side concepts behind these endpoints — what a charge actually does, how settlement timing works, when 3-D Secure applies — see the [Payments product space](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/). It's the right complement to the API reference.

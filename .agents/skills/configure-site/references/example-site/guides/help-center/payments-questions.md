@@ -1,6 +1,8 @@
 ---
+description: >-
+  Charges, refunds, payouts, settlement — the most-asked Payments product
+  questions.
 icon: credit-card
-description: Charges, refunds, payouts, settlement — the most-asked Payments product questions.
 ---
 
 # Payments questions
@@ -9,13 +11,13 @@ description: Charges, refunds, payouts, settlement — the most-asked Payments p
 
 The decline reason is on the charge timeline as `decline_code`. The most common ones:
 
-| Code | What it means | What to do |
-| --- | --- | --- |
-| `insufficient_funds` | Not enough money on the card | Ask the customer to use another card |
-| `expired_card` | Card past its expiry date | Collect updated details |
-| `incorrect_cvc` / `incorrect_zip` | Wrong CVC or billing ZIP | Re-prompt for the failed field |
-| `do_not_honor` | Generic decline; bank doesn't say why | Sometimes worth retrying after 24h |
-| `lost_card` / `stolen_card` | Card flagged as compromised | Don't retry — fraud signal |
+| Code                              | What it means                         | What to do                           |
+| --------------------------------- | ------------------------------------- | ------------------------------------ |
+| `insufficient_funds`              | Not enough money on the card          | Ask the customer to use another card |
+| `expired_card`                    | Card past its expiry date             | Collect updated details              |
+| `incorrect_cvc` / `incorrect_zip` | Wrong CVC or billing ZIP              | Re-prompt for the failed field       |
+| `do_not_honor`                    | Generic decline; bank doesn't say why | Sometimes worth retrying after 24h   |
+| `lost_card` / `stolen_card`       | Card flagged as compromised           | Don't retry — fraud signal           |
 
 For a deeper dive, see the [community thread on decline-code triage](https://gitbookio.github.io/evolve-demo/connections/community/decline-codes-vs-card-decline-codes.html).
 
@@ -23,10 +25,10 @@ For a deeper dive, see the [community thread on decline-code triage](https://git
 
 A captured payment becomes available the moment it's captured. The available balance pays out on your plan's schedule:
 
-| Plan | Schedule |
-| --- | --- |
-| Starter | T+3 business days |
-| Growth | T+2 business days |
+| Plan       | Schedule                 |
+| ---------- | ------------------------ |
+| Starter    | T+3 business days        |
+| Growth     | T+2 business days        |
 | Enterprise | T+1 (same-day available) |
 
 The full mechanic — including reserves, holds, and multi-currency — is on the [Money movement and settlement](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/concepts/money-movement) page.
@@ -45,13 +47,13 @@ For risk holds specifically, contact support if it's been over 14 days.
 
 From the charge page in the dashboard, click **Refund**. You can refund the full amount or a partial amount; multiple partial refunds are fine up to the original total.
 
-Via API, `POST /v2/refunds` with the charge ID. See the [Refunds tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/save-cards) for code samples.
+Via API, `POST /v2/refunds` with the charge ID. See the [Refunds tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/save-cards) for code samples.
 
 ## Why isn't my webhook firing?
 
 Five things to check, in order:
 
-1. **Endpoint subscribed to the right event?** Check **Developers → Webhooks → [endpoint] → Events**.
+1. **Endpoint subscribed to the right event?** Check **Developers → Webhooks → \[endpoint] → Events**.
 2. **Endpoint URL correct and reachable?** Use the dashboard's "Test endpoint" button.
 3. **Endpoint returning 2xx?** Anything else triggers retries.
 4. **Signature verification passing?** Most-cited cause: body parsed before verification.
@@ -75,7 +77,7 @@ Disputes show up in **Reconciliation → Disputes**. For each dispute:
 2. Decide to fight or accept. For low-value disputes (under $50), accepting is often cheaper than the staff time to fight.
 3. If fighting, submit evidence within 20 calendar days. The form pre-populates the most-relevant fields.
 
-For systematic dispute reduction, the [chargeback-prevention tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/chargeback-prevention) is the highest-ROI thing you can do.
+For systematic dispute reduction, the [chargeback-prevention tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/chargeback-prevention) is the highest-ROI thing you can do.
 
 ## Why is my approval rate low?
 
@@ -114,11 +116,11 @@ In **Settings → Risk → 3-D Secure**, three presets:
 * **By rule** — your custom rules (e.g. amount > $500) on top of required cases.
 * **Always** — every charge goes through 3DS.
 
-For most teams, **By rule** with a high-value threshold is the right default. The [3-D Secure tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/3d-secure) walks through the setup.
+For most teams, **By rule** with a high-value threshold is the right default. The [3-D Secure tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/3d-secure) walks through the setup.
 
 ## Where can I find more answers?
 
 * [Community: Stripe migration gotchas](https://gitbookio.github.io/evolve-demo/connections/community/migrating-stripe-customers.html)
 * [YouTube: Smart routing explained](https://gitbookio.github.io/evolve-demo/connections/youtube/smart-routing-explained.html)
-* [Payments product space](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/)
+* [Payments product space](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/)
 * [Tutorials: Build common payment flows](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/#build-common-payment-flows)

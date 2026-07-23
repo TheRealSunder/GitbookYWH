@@ -1,12 +1,30 @@
 ---
-icon: graduation-cap
 description: Step-by-step builds for common Evolve workflows.
+icon: graduation-cap
 cover: .gitbook/assets/tutorials-cover.png
 coverY: 0
 layout:
   width: wide
+  cover:
+    visible: true
+    size: full
+    mask: none
+  title:
+    visible: true
+  description:
+    visible: true
   tableOfContents:
     visible: false
+  outline:
+    visible: true
+  pagination:
+    visible: true
+  metadata:
+    visible: true
+  tags:
+    visible: true
+  actions:
+    visible: true
 ---
 
 # Tutorials
@@ -15,7 +33,7 @@ layout:
 {% column width="50%" %}
 Hands-on walkthroughs for the workflows we get the most questions about. Each tutorial follows the same structure — short intro, video walkthrough, stepper with the actual build, common pitfalls, and pointers to what's next.
 
-**Looking for conceptual material?** The product spaces — [Payments](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/), [Identity](https://app.gitbook.com/s/w7NRnYZuokE4h1mm2pJB/), [Connect](https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/) — cover the underlying mechanics and dashboard workflows. Tutorials cover end-to-end builds that combine multiple features.
+**Looking for conceptual material?** The product spaces — [Payments](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/), [Identity](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w7NRnYZuokE4h1mm2pJB/), [Connect](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Xtfxb7OHGyrdfIsObmnu/) — cover the underlying mechanics and dashboard workflows. Tutorials cover end-to-end builds that combine multiple features.
 {% endcolumn %}
 
 {% column width="50%" %}
@@ -51,22 +69,18 @@ Platform and marketplace patterns. Heaviest on Connect, with reaches into Identi
 
 {% columns %}
 {% column width="50%" %}
-
 ### Talk to support
 
 For account-specific questions, integration help, or production incidents, open a ticket from the dashboard.
 
-<p><a href="https://gitbook.com" class="button primary">Open a ticket</a></p>
-
+<a href="https://gitbook.com" class="button primary">Open a ticket</a>
 {% endcolumn %}
 
 {% column width="50%" %}
-
 ### Search the docs
 
 Looking for something specific? The Assistant pulls answers from this site, the API reference, and the community forum.
 
-<p><button type="button" class="button secondary" data-action="search" data-icon="magnifying-glass">Search...</button></p>
-
+<button type="button" class="button secondary" data-action="search" data-icon="magnifying-glass">Search...</button>
 {% endcolumn %}
 {% endcolumns %}

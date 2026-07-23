@@ -1,6 +1,8 @@
 ---
+description: >-
+  First setup, going live, integration help, and the steps every new account
+  walks through.
 icon: flag
-description: First setup, going live, integration help, and the steps every new account walks through.
 ---
 
 # Getting started
@@ -13,7 +15,7 @@ Three steps in order:
 2. **Run a test charge** — follow the [Quickstart](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/quickstart/accept-your-first-payment). Five minutes, no integration required.
 3. **Get your live keys** — once business verification passes, **Developers → API keys** has live `sk_live_` and `pk_live_` keys ready.
 
-After that, the [Tutorials](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/) cover the most common integration patterns.
+After that, the [Tutorials](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Nankrp40VchJsUblU6h6/) cover the most common integration patterns.
 
 ## How long does business verification take?
 
@@ -51,7 +53,7 @@ For the full setup walkthrough, see the [Developers Quickstart](https://app.gitb
 
 The [Accept your first payment](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/quickstart/accept-your-first-payment) walkthrough takes about five minutes via the dashboard, with no code required. Create a payment link, share it, complete the test checkout — done.
 
-For an integration-first start, the [Tutorials → Accept a one-time payment](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/accept-one-time-payment) covers building Checkout into your own site.
+For an integration-first start, the [Tutorials → Accept a one-time payment](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/accept-one-time-payment) covers building Checkout into your own site.
 
 ## How do I switch from test mode to live mode?
 
@@ -72,7 +74,7 @@ The full list is on the [Developers SDKs page](https://app.gitbook.com/s/Si95BtO
 
 ## I'm migrating from another provider. Where do I start?
 
-For Stripe specifically, the [Migrate from Stripe tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/migrate-from-stripe) covers the field mapping, the parallel-run pattern, and the cutover checklist. For other providers, the same patterns apply — most concepts (charges, refunds, customers, subscriptions) map cleanly.
+For Stripe specifically, the [Migrate from Stripe tutorial](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/migrate-from-stripe) covers the field mapping, the parallel-run pattern, and the cutover checklist. For other providers, the same patterns apply — most concepts (charges, refunds, customers, subscriptions) map cleanly.
 
 For business-side migration of customer data and saved cards, contact your account team. Several import tools are available depending on the source provider.
 
@@ -80,11 +82,11 @@ For business-side migration of customer data and saved cards, contact your accou
 
 Yes — Enterprise customers get a solutions engineer assigned at signup. Growth customers can request integration support via **Settings → Get help → Integration support**; we'll respond within 1 business day.
 
-For most well-trodden integration patterns, the [Tutorials](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/) cover the build end to end, including common pitfalls.
+For most well-trodden integration patterns, the [Tutorials](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Nankrp40VchJsUblU6h6/) cover the build end to end, including common pitfalls.
 
 ## Where can I find more answers?
 
 * [Community forum](https://gitbookio.github.io/evolve-demo/connections/community/)
 * [YouTube: Set up Connect in 10 minutes](https://gitbookio.github.io/evolve-demo/connections/youtube/set-up-connect-in-10-minutes.html)
-* [Tutorials](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/) — end-to-end builds for common workflows.
+* [Tutorials](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Nankrp40VchJsUblU6h6/) — end-to-end builds for common workflows.
 * [Developers Quickstart](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/getting-started/quickstart) — five-minute API integration.

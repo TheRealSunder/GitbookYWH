@@ -1,6 +1,6 @@
 ---
-icon: bolt-lightning
 description: Wire Evolve events to 6,000+ apps without writing code.
+icon: bolt-lightning
 ---
 
 # Zapier
@@ -13,23 +13,20 @@ This is the right path when:
 * The tool you want to connect to is already in Zapier's catalog.
 * The volume is reasonable (Zapier's free tier covers 100 tasks/month; paid plans go up from there).
 
-For high-volume integrations, build directly against [webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks/) — Zapier's per-task pricing adds up fast.
+For high-volume integrations, build directly against [webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks) — Zapier's per-task pricing adds up fast.
 
 ## Connect Evolve in Zapier
 
 {% stepper %}
 {% step %}
-
 ### Authenticate
 
 In Zapier, search for "Evolve" and click **Connect**. You'll be asked for your Evolve API key — paste a [restricted key](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/getting-started/authentication#restricted-keys) scoped to read-only or to the specific operations the Zap will perform.
 
 For most Zaps, **Read-only** is enough. For Zaps that create or refund charges, scope to the specific resources.
-
 {% endstep %}
 
 {% step %}
-
 ### Pick a trigger
 
 Zaps start with a trigger — an event in Evolve that kicks the Zap off. The full list is on [Triggers and actions](triggers-and-actions.md). Common starting points:
@@ -37,11 +34,9 @@ Zaps start with a trigger — an event in Evolve that kicks the Zap off. The ful
 * **New charge succeeded** — for tracking sales in a spreadsheet.
 * **New dispute opened** — for routing to a support tool like Intercom.
 * **New customer created** — for syncing to a CRM.
-
 {% endstep %}
 
 {% step %}
-
 ### Add downstream actions
 
 After the trigger, chain whatever Zapier supports. Examples:
@@ -50,15 +45,12 @@ After the trigger, chain whatever Zapier supports. Examples:
 * New dispute → create a Notion task.
 * New customer → add to Mailchimp.
 * Failed payout → send Slack DM to the finance team.
-
 {% endstep %}
 
 {% step %}
-
 ### Test and turn on
 
 Zapier's **Test** step pulls a real recent event from your Evolve test mode and runs the Zap. Verify the downstream action looks right. When you turn the Zap on, it starts processing live events.
-
 {% endstep %}
 {% endstepper %}
 
@@ -70,12 +62,12 @@ The API key you connect determines which mode the Zap reads from. Use a `sk_test
 
 A handful of patterns worth copying:
 
-| Recipe | Trigger | Action |
-| --- | --- | --- |
-| **Sales tracker** | Charge succeeded | Append row to Google Sheets |
-| **Dispute alerter** | Dispute opened | Create Linear issue |
-| **CRM sync** | Customer created | Create HubSpot contact |
-| **Refund logger** | Refund created | Post to Slack #refunds |
+| Recipe               | Trigger                  | Action                       |
+| -------------------- | ------------------------ | ---------------------------- |
+| **Sales tracker**    | Charge succeeded         | Append row to Google Sheets  |
+| **Dispute alerter**  | Dispute opened           | Create Linear issue          |
+| **CRM sync**         | Customer created         | Create HubSpot contact       |
+| **Refund logger**    | Refund created           | Post to Slack #refunds       |
 | **Onboarding email** | Connect account verified | Send Mailchimp welcome email |
 
 ## Limits
@@ -91,5 +83,5 @@ Last reviewed in early 2026. Zapier's catalog of supported triggers and actions 
 ## Related
 
 * [Triggers and actions](triggers-and-actions.md) — the full catalog.
-* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks/) — for the engineering-driven path.
+* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks) — for the engineering-driven path.
 * [Authentication → Restricted keys](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/getting-started/authentication#restricted-keys) — the right key shape for Zapier.

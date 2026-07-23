@@ -10,6 +10,7 @@ layout:
   cover:
     visible: true
     size: full
+    mask: none
   title:
     visible: true
   description:
@@ -23,6 +24,8 @@ layout:
   metadata:
     visible: true
   tags:
+    visible: true
+  actions:
     visible: true
 ---
 
@@ -72,12 +75,10 @@ Try a persona to see adaptive content in action across the site:
 {% endcolumn %}
 {% endcolumns %}
 
-
-
 {% if visitor.claims.unsigned.persona %}
 ***
 
-# <i class="fa-sparkle" style="color:$info;">:sparkle:</i> Picked for you
+## <i class="fa-sparkle" style="color:$info;">:sparkle:</i> Picked for you
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "prospect" %}
@@ -93,7 +94,7 @@ Try a persona to see adaptive content in action across the site:
 **Welcome to Evolve.** Start with these — get to a working test charge fast, then explore the things every new account does first.
 {% endhint %}
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Take your first payment</strong></h3></td><td>Five-minute test charge from the dashboard. No integration required.</td><td><a href="https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/quickstart/accept-your-first-payment">accept-your-first-payment</a></td></tr><tr><td><h3><i class="fa-key" style="color:$primary;">:key:</i></h3></td><td><h3><strong>Developer Quickstart</strong></h3></td><td>The same flow with a real API call, in Node, Python, Go, or Ruby.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/getting-started/quickstart">quickstart</a></td></tr><tr><td><h3><i class="fa-graduation-cap" style="color:$primary;">:graduation-cap:</i></h3></td><td><h3><strong>Tutorials</strong></h3></td><td>15 step-by-step builds for the most-asked-about workflows.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/">tutorials</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-rocket" style="color:$primary;">:rocket:</i></h3></td><td><h3><strong>Take your first payment</strong></h3></td><td>Five-minute test charge from the dashboard. No integration required.</td><td><a href="https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/quickstart/accept-your-first-payment">Accept your first payment</a></td></tr><tr><td><h3><i class="fa-key" style="color:$primary;">:key:</i></h3></td><td><h3><strong>Developer Quickstart</strong></h3></td><td>The same flow with a real API call, in Node, Python, Go, or Ruby.</td><td><a href="https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/getting-started/quickstart">Quickstart</a></td></tr><tr><td><h3><i class="fa-graduation-cap" style="color:$primary;">:graduation-cap:</i></h3></td><td><h3><strong>Tutorials</strong></h3></td><td>15 step-by-step builds for the most-asked-about workflows.</td><td><a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Nankrp40VchJsUblU6h6/">Tutorials</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "existing" %}
@@ -101,7 +102,7 @@ Try a persona to see adaptive content in action across the site:
 **Migrating from Stripe?** Most concepts map cleanly. Start with the migration tutorial — most teams complete in 2–6 weeks of calendar time.
 {% endhint %}
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>Field mapping, parallel-run pattern, and the cutover checklist.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/migrate-from-stripe">migrate-from-stripe</a></td></tr><tr><td><h3><i class="fa-bookmark" style="color:$primary;">:bookmark:</i></h3></td><td><h3><strong>Save cards for repeat customers</strong></h3></td><td>Network tokens, mandates, account updater — and how Stripe Customers map.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/save-cards">save-cards</a></td></tr><tr><td><h3><i class="fa-arrows-rotate" style="color:$primary;">:arrows-rotate:</i></h3></td><td><h3><strong>Subscription billing</strong></h3></td><td>Recurring billing, mandates, retries, dunning — direct port from Stripe Subscriptions.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/payment-flows/subscription-billing">subscription-billing</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-arrows-left-right" style="color:$primary;">:arrows-left-right:</i></h3></td><td><h3><strong>Migrate from Stripe</strong></h3></td><td>Field mapping, parallel-run pattern, and the cutover checklist.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/migrate-from-stripe">Migrate from Stripe</a></td></tr><tr><td><h3><i class="fa-bookmark" style="color:$primary;">:bookmark:</i></h3></td><td><h3><strong>Save cards for repeat customers</strong></h3></td><td>Network tokens, mandates, account updater — and how Stripe Customers map.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/save-cards">Save cards for repeat customers</a></td></tr><tr><td><h3><i class="fa-arrows-rotate" style="color:$primary;">:arrows-rotate:</i></h3></td><td><h3><strong>Subscription billing</strong></h3></td><td>Recurring billing, mandates, retries, dunning — direct port from Stripe Subscriptions.</td><td><a href="https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/build-common-payment-flows/subscription-billing">Build a subscription billing system</a></td></tr></tbody></table>
 {% endif %}
 
 {% if visitor.claims.unsigned.persona === "partner" %}
@@ -109,20 +110,14 @@ Try a persona to see adaptive content in action across the site:
 **Welcome back.** Your portal has deal registration, marketing assets, training, and a direct line to your partner success manager.
 {% endhint %}
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-handshake-angle" style="color:$primary;">:handshake-angle:</i></h3></td><td><h3><strong>Register a deal</strong></h3></td><td>Protect your commission. Status, protection windows, payout timing.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/deal-registration">deal-registration</a></td></tr><tr><td><h3><i class="fa-bullhorn" style="color:$primary;">:bullhorn:</i></h3></td><td><h3><strong>Marketing resources</strong></h3></td><td>Logos, brand kit, case studies, co-marketing programs.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/marketing-resources">marketing-resources</a></td></tr><tr><td><h3><i class="fa-graduation-cap" style="color:$primary;">:graduation-cap:</i></h3></td><td><h3><strong>Training</strong></h3></td><td>Three certifications, self-paced courses, monthly live sessions.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/training">training</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-handshake-angle" style="color:$primary;">:handshake-angle:</i></h3></td><td><h3><strong>Register a deal</strong></h3></td><td>Protect your commission. Status, protection windows, payout timing.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/deal-registration">Deal registration</a></td></tr><tr><td><h3><i class="fa-bullhorn" style="color:$primary;">:bullhorn:</i></h3></td><td><h3><strong>Marketing resources</strong></h3></td><td>Logos, brand kit, case studies, co-marketing programs.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/marketing-resources">Marketing resources</a></td></tr><tr><td><h3><i class="fa-graduation-cap" style="color:$primary;">:graduation-cap:</i></h3></td><td><h3><strong>Training</strong></h3></td><td>Three certifications, self-paced courses, monthly live sessions.</td><td><a href="https://app.gitbook.com/s/R0VawBV5xcQ4exP2PlWS/training">Training</a></td></tr></tbody></table>
 {% endif %}
-
-
-
-
 
 ***
 
-
-
 ## Three products, one platform
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-credit-card" style="color:$primary;">:credit-card:</i></h3></td><td><h3><strong>Payments</strong></h3></td><td>Accept card and bank-rail payments. Smart routing, 3-D Secure, settlement, reporting.</td><td><a href="https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/">payments</a></td></tr><tr><td><h3><i class="fa-id-card" style="color:$primary;">:id-card:</i></h3></td><td><h3><strong>Identity</strong></h3></td><td>Verify customers and businesses. Document review, selfie liveness, bank verification, KYB.</td><td><a href="https://app.gitbook.com/s/w7NRnYZuokE4h1mm2pJB/">identity</a></td></tr><tr><td><h3><i class="fa-circles-overlap" style="color:$primary;">:circles-overlap:</i></h3></td><td><h3><strong>Connect</strong></h3></td><td>Embed payments in your platform. Onboard sellers, split payments, run a marketplace.</td><td><a href="https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/">connect</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-credit-card" style="color:$primary;">:credit-card:</i></h3></td><td><h3><strong>Payments</strong></h3></td><td>Accept card and bank-rail payments. Smart routing, 3-D Secure, settlement, reporting.</td><td><a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/">Payments</a></td></tr><tr><td><h3><i class="fa-id-card" style="color:$primary;">:id-card:</i></h3></td><td><h3><strong>Identity</strong></h3></td><td>Verify customers and businesses. Document review, selfie liveness, bank verification, KYB.</td><td><a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w7NRnYZuokE4h1mm2pJB/">Identity</a></td></tr><tr><td><h3><i class="fa-circles-overlap" style="color:$primary;">:circles-overlap:</i></h3></td><td><h3><strong>Connect</strong></h3></td><td>Embed payments in your platform. Onboard sellers, split payments, run a marketplace.</td><td><a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Xtfxb7OHGyrdfIsObmnu/">Connect</a></td></tr></tbody></table>
 
 ## For developers
 
@@ -206,7 +201,7 @@ Slack, Zapier, Segment, QuickBooks, NetSuite — and more in active development.
 
 Our biggest recent releases
 
-<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-route" style="color:$primary;">:route:</i></h3></td><td><h3><strong>Smart routing v2</strong></h3></td><td>Per-network success-rate optimization. 1–3% lift in approval rate, no code changes.</td><td><a href="#smart-routing-v2">Broken link</a></td></tr><tr><td><h3><i class="fa-flask" style="color:$primary;">:flask:</i></h3></td><td><h3><strong>Payments API v3-beta</strong></h3></td><td>Renamed Payment object, capture_method enum, 30-day auth, multi-currency capture.</td><td><a href="#payments-api-v3-beta-available">Broken link</a></td></tr><tr><td><h3><i class="fa-face-smile" style="color:$primary;">:face-smile:</i></h3></td><td><h3><strong>Selfie liveness 2.0</strong></h3></td><td>Passive liveness — no head turns. Lifts completion rates by ~12%.</td><td><a href="#selfie-liveness-2.0">Broken link</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h3><i class="fa-route" style="color:$primary;">:route:</i></h3></td><td><h3><strong>Smart routing v2</strong></h3></td><td>Per-network success-rate optimization. 1–3% lift in approval rate, no code changes.</td><td><a href="./#smart-routing-v2">#smart-routing-v2</a></td></tr><tr><td><h3><i class="fa-flask" style="color:$primary;">:flask:</i></h3></td><td><h3><strong>Payments API v3-beta</strong></h3></td><td>Renamed Payment object, capture_method enum, 30-day auth, multi-currency capture.</td><td><a href="./#payments-api-v3-beta-available">#payments-api-v3-beta-available</a></td></tr><tr><td><h3><i class="fa-face-smile" style="color:$primary;">:face-smile:</i></h3></td><td><h3><strong>Selfie liveness 2.0</strong></h3></td><td>Passive liveness — no head turns. Lifts completion rates by ~12%.</td><td><a href="./#selfie-liveness-2.0">#selfie-liveness-2.0</a></td></tr></tbody></table>
 
 <a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/ErQsbFsgm6eg9BApdmPl/" class="button secondary" data-icon="clock-rotate-left">View complete changelog</a>
 {% endcolumn %}

@@ -8,6 +8,7 @@ layout:
   cover:
     visible: true
     size: full
+    mask: none
   title:
     visible: true
   description:
@@ -22,13 +23,15 @@ layout:
     visible: true
   tags:
     visible: true
+  actions:
+    visible: true
 ---
 
 # Developers
 
 {% columns %}
 {% column width="50%" %}
-Build with Evolve. The Developers space is the source of truth for APIs, SDKs, webhooks, and the agent integrations across all three products — [Payments](https://app.gitbook.com/s/w3LlITSOQye8o4wjsQXV/), [Identity](https://app.gitbook.com/s/w7NRnYZuokE4h1mm2pJB/), and [Connect](https://app.gitbook.com/s/Xtfxb7OHGyrdfIsObmnu/).
+Build with Evolve. The Developers space is the source of truth for APIs, SDKs, webhooks, and the agent integrations across all three products — [Payments](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w3LlITSOQye8o4wjsQXV/), [Identity](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w7NRnYZuokE4h1mm2pJB/), and [Connect](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/Xtfxb7OHGyrdfIsObmnu/).
 
 **Looking for product workflows and concepts?** Those live in the product spaces — this space is the technical reference.
 {% endcolumn %}
@@ -84,6 +87,6 @@ For account-specific questions, integration help, or production incidents, open 
 
 Real-time platform status and the running list of API changes.
 
-<a href="https://gitbook.com" class="button secondary">Status page</a> <a href="https://app.gitbook.com/s/ErQsbFsgm6eg9BApdmPl/" class="button secondary">Changelog</a>
+<a href="https://gitbook.com" class="button secondary">Status page</a> <a href="https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/ErQsbFsgm6eg9BApdmPl/" class="button secondary">Changelog</a>
 {% endcolumn %}
 {% endcolumns %}

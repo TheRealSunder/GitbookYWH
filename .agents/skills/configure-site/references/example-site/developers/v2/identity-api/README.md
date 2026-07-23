@@ -1,6 +1,6 @@
 ---
-icon: id-card
 description: Verification sessions, documents, bank checks, and business verification.
+icon: id-card
 ---
 
 # Identity API
@@ -70,4 +70,4 @@ curl https://api.evolve.com/v2/verification_sessions \
 
 ## Conceptual background
 
-For the product-side concepts — when to verify, which method to pick, what the customer sees — see the [Identity product space](https://app.gitbook.com/s/w7NRnYZuokE4h1mm2pJB/).
+For the product-side concepts — when to verify, which method to pick, what the customer sees — see the [Identity product space](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/w7NRnYZuokE4h1mm2pJB/).

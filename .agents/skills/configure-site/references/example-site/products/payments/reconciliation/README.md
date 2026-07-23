@@ -34,19 +34,17 @@ Your finance team's job each day is to take the settlement file, match it to the
 ## Who does what
 
 {% if visitor.claims.unsigned.persona === "partner" %}
-
 {% hint style="info" icon="building" %}
 **Setting up Enterprise reconciliation?** You probably want **scheduled exports** to your data warehouse, not manual CSV downloads. See [Sharing and scheduled exports](../reporting/sharing-exports.md) for the SFTP and S3 push options.
 {% endhint %}
-
 {% endif %}
 
-| Role | What they do |
-| --- | --- |
-| **Finance / accounting** | Imports settlement files, matches to bank, books journal entries. |
-| **Ops / support** | Issues refunds, responds to dispute notifications. |
-| **Engineering** | Configures webhooks, builds reporting integrations. |
-| **Leadership** | Watches dispute rate and net revenue trends in [Reporting](../reporting/README.md). |
+| Role                     | What they do                                                               |
+| ------------------------ | -------------------------------------------------------------------------- |
+| **Finance / accounting** | Imports settlement files, matches to bank, books journal entries.          |
+| **Ops / support**        | Issues refunds, responds to dispute notifications.                         |
+| **Engineering**          | Configures webhooks, builds reporting integrations.                        |
+| **Leadership**           | Watches dispute rate and net revenue trends in [Reporting](../reporting/). |
 
 ## Permissions
 
@@ -61,4 +59,4 @@ Configure roles in **Settings → Team → Roles**.
 
 ## Where this fits
 
-Reconciliation is downstream of [Accept payments](../accept-payments/README.md) (where the captures originate) and upstream of [Reporting](../reporting/README.md) (where you build longer-horizon views). If you're building an integration with QuickBooks, NetSuite, or your own data warehouse, see [Guides / Integrations](https://app.gitbook.com/s/MBT3EDUK7DzXmR0k9cje/).
+Reconciliation is downstream of [Accept payments](../accept-payments/) (where the captures originate) and upstream of [Reporting](../reporting/) (where you build longer-horizon views). If you're building an integration with QuickBooks, NetSuite, or your own data warehouse, see [Guides / Integrations](https://app.gitbook.com/o/2DnmWBpytIOUKeXExonU/s/MBT3EDUK7DzXmR0k9cje/).

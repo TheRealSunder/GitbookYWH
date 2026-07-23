@@ -1,11 +1,11 @@
 ---
-icon: flask
 description: Two separate environments — what changes between them, and how to flip safely.
+icon: flask
 ---
 
 # Test mode and live mode
 
-{% include "../.gitbook/includes/environments.md" %}
+{% include "../.gitbook/includes/environments (1).md" %}
 
 ## What's different in live mode
 

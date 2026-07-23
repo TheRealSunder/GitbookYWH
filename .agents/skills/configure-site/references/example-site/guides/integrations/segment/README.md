@@ -1,6 +1,8 @@
 ---
+description: >-
+  Stream Evolve events into Segment as a source, or apply Segment events to
+  customer records.
 icon: circle-nodes
-description: Stream Evolve events into Segment as a source, or apply Segment events to customer records.
 ---
 
 # Segment
@@ -16,15 +18,12 @@ Most teams enable the source direction first (it's the higher-leverage one) and 
 
 {% stepper %}
 {% step %}
-
 ### Get a Segment write key
 
 In your Segment workspace, **Connections → Sources → Add Source → Evolve**. Segment generates a write key — copy it.
-
 {% endstep %}
 
 {% step %}
-
 ### Configure Evolve
 
 In your Evolve dashboard, **Settings → Integrations → Segment → Source**. Paste the Segment write key and pick which events to stream:
@@ -36,15 +35,12 @@ In your Evolve dashboard, **Settings → Integrations → Segment → Source**. 
 * **Connect** (account-related events)
 
 The default selection covers the most common analytics use cases. Tighten it if you only need a subset.
-
 {% endstep %}
 
 {% step %}
-
 ### Verify in the Segment debugger
 
 In Segment's source debugger, trigger a test charge in Evolve and watch the event arrive in Segment. From there, the data flows to whatever destinations you've configured (Snowflake, Mixpanel, Customer.io, etc.).
-
 {% endstep %}
 {% endstepper %}
 
@@ -84,4 +80,4 @@ Last reviewed in early 2026. Segment's event spec is occasionally updated; submi
 ## Related
 
 * [Event mapping](event-mapping.md) — full Evolve→Segment event reference.
-* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks/) — the underlying Evolve event source.
+* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks) — the underlying Evolve event source.

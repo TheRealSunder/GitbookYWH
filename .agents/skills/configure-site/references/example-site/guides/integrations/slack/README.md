@@ -1,6 +1,8 @@
 ---
+description: >-
+  Real-time alerts for disputes, refunds, and platform events. Slash commands
+  for lookups.
 icon: slack
-description: Real-time alerts for disputes, refunds, and platform events. Slash commands for lookups.
 ---
 
 # Slack
@@ -18,27 +20,21 @@ The Evolve Slack app sends real-time alerts to channels you pick and exposes sla
 
 {% stepper %}
 {% step %}
-
 ### Install the Slack app
 
 In your Evolve dashboard, **Settings → Integrations → Slack → Install**. You'll be redirected to Slack to authorize the app for your workspace. Pick the workspace and click **Allow**.
-
 {% endstep %}
 
 {% step %}
-
 ### Pick the default channel
 
 Pick a channel for general Evolve notifications. Most teams create a dedicated `#evolve-alerts` channel for this. The bot needs to be invited to any channel you want to send notifications to — the install flow does this automatically for the default channel; for additional channels, run `/invite @evolve` in the channel.
-
 {% endstep %}
 
 {% step %}
-
 ### Configure alerts
 
 The default install enables the most common alerts (disputes, failed payouts). To customize which events go where, see [Configuring alerts](configuring-alerts.md).
-
 {% endstep %}
 {% endstepper %}
 
@@ -46,14 +42,14 @@ The default install enables the most common alerts (disputes, failed payouts). T
 
 Once installed, anyone in your workspace with access to the channel can use:
 
-| Command | What it does |
-| --- | --- |
-| `/evolve customer cus_123` | Show a customer's record, recent charges, balance |
-| `/evolve charge ch_123` | Show a charge with its full timeline |
-| `/evolve search jordan@acme.com` | Search across customers, charges, verifications |
-| `/evolve dispute dp_123` | Show a dispute and let you upload evidence |
-| `/evolve verify vs_123` | Show a verification session and its check results |
-| `/evolve help` | Full list of commands |
+| Command                          | What it does                                      |
+| -------------------------------- | ------------------------------------------------- |
+| `/evolve customer cus_123`       | Show a customer's record, recent charges, balance |
+| `/evolve charge ch_123`          | Show a charge with its full timeline              |
+| `/evolve search jordan@acme.com` | Search across customers, charges, verifications   |
+| `/evolve dispute dp_123`         | Show a dispute and let you upload evidence        |
+| `/evolve verify vs_123`          | Show a verification session and its check results |
+| `/evolve help`                   | Full list of commands                             |
 
 Slash command results are visible only to the user who ran them — they're not posted to the channel.
 
@@ -73,5 +69,5 @@ This page was last reviewed in early 2026. Doc updates flow through change reque
 ## Related
 
 * [Configuring alerts](configuring-alerts.md) — picking which events go where.
-* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks/) — the underlying event source.
-* [Disputes at scale](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/marketplace/disputes-at-scale) — the most-common dispute-routing pattern.
+* [Webhooks](https://app.gitbook.com/s/Si95BtOt1VRLWjT7A67V/webhooks) — the underlying event source.
+* [Disputes at scale](https://app.gitbook.com/s/Nankrp40VchJsUblU6h6/run-a-marketplace-with-connect/disputes-at-scale) — the most-common dispute-routing pattern.
