@@ -6,3 +6,4 @@
 * [Scraping the YesWeHack Leaderboard](scraping-the-yeswehack-leaderboard.md)
 * [Data Preprocessing](data-preprocessing.md)
 * [Statistical Inference EDA Report](statistical-inference-eda-report.md)
+* [Reports vs. Points — Correlation Analysis](reports-vs.-points-correlation-analysis.md)
