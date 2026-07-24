@@ -7,3 +7,4 @@
 * [Data Preprocessing](data-preprocessing.md)
 * [Statistical Inference EDA Report](statistical-inference-eda-report.md)
 * [Reports vs. Points — Correlation Analysis](reports-vs.-points-correlation-analysis.md)
+* [Spearman Correlation Analysis: Rank and Shannon Entropy](spearman-correlation-analysis-rank-and-shannon-entropy.md)
