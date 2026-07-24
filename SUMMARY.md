@@ -5,3 +5,4 @@
 * [Source Scripts](source-scripts.md)
 * [Scraping the YesWeHack Leaderboard](scraping-the-yeswehack-leaderboard.md)
 * [Data Preprocessing](data-preprocessing.md)
+* [Statistical Inference EDA Report](statistical-inference-eda-report.md)
