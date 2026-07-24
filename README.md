@@ -1,18 +1,46 @@
+---
+description: >-
+  A web vulnerability assessment and an end-to-end data analysis of YesWeHack's
+  public bug bounty leaderboard — scraping, cleaning, EDA, correlation testing,
+  and entropy analysis.
+icon: bug
+---
+
 # Bug Bounty Hunter Analysis
 
-This is a research-notes space documenting a statistical analysis of bug bounty hunter data (reports, points, CWE categories, entropy of specialization).
+This space covers two pieces of work: an offensive web security assessment (CVSS scoring + XSS exploitation), and a full data pipeline over YesWeHack's public hunter leaderboard — scraping, cleaning, EDA, correlation testing, and entropy analysis. Pick a section below, or jump straight to a specific write-up.
 
-## Structure
+***
 
-* **Documentation** — write-ups of each analysis stage, meant to be read in this order:
-  1. Data Preprocessing — cleaning hacktivity data, reconciling legacy OWASP labels with canonical CWE/bug\_name categories, deciding how to count a "report" (uses report status `new` as the estimator, since resolution status is inconsistent).
-  2. Statistical Inference — EDA on points/reports/join-date/country distributions, and a sanity check comparing hunter-reported stats totals vs. hacktivity-derived totals (large discrepancies for some hunters, exact matches for others).
-  3. Shannon Entropy Analysis — Shannon entropy analysis of each hunter's specialization across CWE categories, correlated (Spearman) against leaderboard rank.
-  4. Reports to Points — Spearman correlation between reports, points, and rank.
-* **Source Scripts** — the Python scripts used throughout the analysis, with descriptions and full source, viewable as dropdowns.
-* **Write-ups** — standalone technical write-ups, such as the Root-Me Web-Client ch18 stored XSS exploitation.
+## Web Vulnerability Assessment
+
+A stored XSS exploitation chain against a Root-Me web-client challenge, written up as a full vulnerability report.
+
+**The write-up covers:**
+
+| Section                     | What it contains                                    |
+| --------------------------- | --------------------------------------------------- |
+| Vulnerability Summary       | The type of vulnerability and its impact            |
+| Proof of Concept (PoC)      | Detailed, reproducible exploitation steps           |
+| Risk Assessment             | A CVSS 3.1 score with justification for each metric |
+| Remediation Recommendations | Mitigation strategies                               |
+
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-shield-halved" style="color:$primary;">:shield-halved:</i></h4></td><td><h4>Root-Me Web-Client ch18 — Stored XSS</h4></td><td>Vulnerability summary, PoC, CVSS 3.1 risk assessment, and remediation for the admin cookie exfiltration exploit.</td><td></td></tr></tbody></table>
+
+***
+
+## Leaderboard Data Analysis
+
+Data on public hunters was collected from the [YesWeHack Rankings Page](https://yeswehack.com/ranking) — impact score, report count, rank, points, and full hacktivity history for hunters with a public profile (e.g. [reptou](https://yeswehack.com/hunters/reptou)) — then cleaned, explored, and tested for two relationships: whether accepted reports predict points earned, and whether specialization (vs. diversification) across vulnerability categories correlates with rank.
+
+### The pipeline
+
+<table data-view="cards"><thead><tr><th></th><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td><h4><i class="fa-spider-web" style="color:$primary;">:spider-web:</i></h4></td><td><h4>1. Scraping the Leaderboard</h4></td><td>Reverse-engineering the ranking page's JSON API into a four-step scraping pipeline.</td><td></td></tr><tr><td><h4><i class="fa-broom" style="color:$primary;">:broom:</i></h4></td><td><h4>2. Data Preprocessing</h4></td><td>Cleaning the hacktivity export and reconciling legacy OWASP labels with canonical CWE categories.</td><td></td></tr><tr><td><h4><i class="fa-chart-mixed" style="color:$primary;">:chart-mixed:</i></h4></td><td><h4>3. Statistical Inference (EDA)</h4></td><td>Exploratory analysis of country, bug/CWE frequency, and numeric hunter attributes.</td><td></td></tr><tr><td><h4><i class="fa-chart-line" style="color:$primary;">:chart-line:</i></h4></td><td><h4>4. Reports vs. Points</h4></td><td>Spearman correlation testing whether accepted reports predict total points earned.</td><td></td></tr><tr><td><h4><i class="fa-shuffle" style="color:$primary;">:shuffle:</i></h4></td><td><h4>5. Shannon Entropy vs. Rank</h4></td><td>Does specialization vs. diversification across vulnerability categories correlate with leaderboard rank?</td><td></td></tr><tr><td><h4><i class="fa-code" style="color:$primary;">:code:</i></h4></td><td><h4>Source Scripts</h4></td><td>Every script behind the pipeline above — full source, expandable, with a description of what each one does.</td><td></td></tr></tbody></table>
+
+***
 
 ## Working notes
 
-* Statistical results (Spearman's ρ, p-values, N) quoted throughout come from specific analysis runs.
-* Treat the documentation pages as lab-notebook-style writing: each records a research question, method, and result, often with open questions at the end.
+* Read the pipeline write-ups in order (1 → 5) — each stage's output is the next stage's input.
+* Statistical results (Spearman's ρ, p-values, N) quoted throughout come from specific analysis runs against the current dataset, not placeholders.
+* Treat each write-up as lab-notebook-style: a research question, a method, a result, and often open questions at the end — not neutral reference documentation.
