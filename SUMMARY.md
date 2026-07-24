@@ -7,4 +7,5 @@
   * [Statistical Inference](documentation/statistical-inference.md)
   * [Shannon Entropy Analysis](documentation/shannon-entropy-analysis.md)
   * [Reports to Points](documentation/reports-to-points.md)
+  * [Scraping the YesWeHack Leaderboard](documentation/scraping-the-yeswehack-leaderboard.md)
 * [Source Scripts](source-scripts.md)
