@@ -7,100 +7,54 @@ icon: spider-web
 
 # Scraping the YesWeHack Leaderboard
 
-A four-step pipeline that turns a JavaScript-rendered leaderboard page into a structured dataset of hunters, their stats, and their full bug-disclosure history.
+A pipeline that turns a JavaScript-rendered leaderboard page into a structured dataset of hunters, their stats, and their bug-disclosure history — plus a checker script that verifies the scrape actually completed.
 
 ***
 
-## The Pipeline at a Glance
+## Finding the API
 
-```mermaid
-flowchart TD
-    A["🌐 yeswehack.com/ranking<br/><i>empty HTML — SPA</i>"] --> B
+### The ranking and account pages — a shortcut, then a confirmation
 
-    B["<b>STEP 0 · Recon</b><br/>DevTools → Network → XHR"] --> C
+`yeswehack.com/ranking` returns almost no HTML — a `<div id="app">`, a script bundle, nothing else. The leaderboard is drawn by JavaScript after the page loads, which means the data has to arrive over a separate request.
 
-    C["<b>STEP 1 · name_parser.py</b><br/>GET /ranking?period=All&page=N"] --> D
+`api.<domain>.com` is a very common convention for splitting a JS frontend from the backend that actually serves data. Recognizing that convention and typing `api.yeswehack.com` directly into the URL bar in place of `yeswehack.com` is a reasonable first guess for a single-page app — and here, it happened to pay off immediately for two pages:
 
-    D[("names.json<br/><i>username · slug · public · profile</i>")] --> E
+* `yeswehack.com/ranking` → `api.yeswehack.com/ranking?period=All&page=N` returns the raw JSON leaderboard.
+* `yeswehack.com/hunters/{slug}` → `api.yeswehack.com/hunters/{slug}` returns the raw JSON hunter profile.
 
-    E["<b>STEP 2 · statparse.py</b><br/>GET /hunters/{slug}"] --> F
+{% hint style="warning" %}
+**The `api.` guess is a shortcut, not a method.** It only works because these two pages are top-level routes with a 1:1 mapping between the frontend page and a single backend resource — the URL structures happen to mirror each other. It is not something to rely on in general; it has to be verified, and it does not generalize to every endpoint (see below).
+{% endhint %}
 
-    F[("hunters/&lt;slug&gt;/stats.json<br/><i>points · rank · impact · country</i>")] --> G
-
-    G["<b>STEP 3 · parse_hacktivity.py</b><br/>GET /v2/hacktivity/{slug}"] --> H
-
-    H[("hunters/&lt;slug&gt;/hacktivities.json<br/><i>date · CWE · bug · status</i>")] --> I
-
-    I[["📊 hunter_stats.csv<br/>78 rows · joined dataset"]]
-```
-
-| Step | Script                | Endpoint                | Produces            |
-| ---- | --------------------- | ----------------------- | ------------------- |
-| 0    | —                     | _reconnaissance_        | endpoint map        |
-| 1    | `name_parser.py`      | `/ranking`              | `names.json`        |
-| 2    | `statparse.py`        | `/hunters/{slug}`       | `stats.json`        |
-| 3    | `parse_hacktivity.py` | `/v2/hacktivity/{slug}` | `hacktivities.json` |
-
-***
-
-## Step 0 · Find the API
-
-The ranking page returns **almost no HTML**. There is a `<div id="app">`, a script bundle, and nothing else. No table rows. The leaderboard is drawn by JavaScript _after_ the page loads — which means the data arrives over a separate request.
-
-### The DevTools procedure
+The guess was verified properly with DevTools, not left as an assumption:
 
 {% stepper %}
 {% step %}
-### Open DevTools → Network
+### Open DevTools → Network, before loading the page
 
-_Before_ loading the page.
+Filter to **Fetch/XHR** to drop images, fonts, and analytics noise.
 {% endstep %}
 
 {% step %}
-### Tick Disable cache
+### Interact with the page
 
-Stops a cached response from hiding the request you're hunting for.
-{% endstep %}
-
-{% step %}
-### Filter to Fetch/XHR
-
-Drops images, fonts, and analytics noise — leaves only the calls that carry data.
-{% endstep %}
-
-{% step %}
-### Click every control
-
-Paginate, open a profile, scroll the feed. Each interaction fires a distinct request.
+Load `/ranking`, click a page number, open a hunter's profile. Each interaction fires a distinct request.
 {% endstep %}
 
 {% step %}
 ### Read the request URL, not the response
 
-The URL is where endpoint shape and version prefixes are stated, not inferred.
+Version prefixes and endpoint shape are stated in the URL, never inferred.
 {% endstep %}
 
 {% step %}
-### Right-click → Copy as cURL, replay it in a terminal
+### Confirm against the Response body
 
-{% hint style="success" %}
-**This is the moment of truth.** If the cURL works outside the browser with no cookie and no token, you have a scriptable, unauthenticated endpoint.
-{% endhint %}
+Check that the JSON payload actually contains what's rendered on screen (hunter names, points, ranks) before trusting the endpoint.
 {% endstep %}
 {% endstepper %}
 
-### What the panel revealed
-
-| Action in the browser      | Request that fired                                               |
-| -------------------------- | ---------------------------------------------------------------- |
-| Load `/ranking`            | `api.yeswehack.com/ranking?period=All&page=1`                    |
-| Click page 2               | `api.yeswehack.com/ranking?period=All&page=2`                    |
-| Open a hunter profile      | `api.yeswehack.com/hunters/rabhi`                                |
-| Scroll the hacktivity feed | `api.yeswehack.com/v2/hacktivity/rabhi?page=1&resultsPerPage=10` |
-
-{% hint style="info" %}
-**Where `/v2/` came from.** It was **read off the wire**, not guessed. The site's own JavaScript built that URL. Note the inconsistency — `/ranking` and `/hunters/` are unversioned, hacktivity is `/v2/`. Version prefixes are a property of the _individual endpoint_, never of the API as a whole.
-{% endhint %}
+That confirmation also had to filter out a lot of noise. A single page load fires requests to error monitoring (`sessions.bugsnag.com`), chat widgets (`api-iam.eu.intercom.io`), feature-flag services (`feature.yeswehack.com`), and generic account bootstrap calls that repeat on _every_ page regardless of what's on screen (`/user`, `/user/preferences/settings`, `/user/notifications/unread`, `/platform-settings`). None of those are the target — they're discarded by (a) not belonging to the site's own domain, or (b) firing identically on unrelated pages. What's left is checked against the Response body as the final tiebreaker.
 
 ### The only header needed
 
@@ -108,28 +62,56 @@ The URL is where endpoint shape and version prefixes are stated, not inferred.
 headers = {"User-Agent": "Mozilla/5.0"}
 ```
 
-`requests` defaults to `python-requests/2.x` — the easiest string in the world for a WAF to filter. No cookie, no bearer token, no CSRF header was required.
+No cookie, no bearer token, no CSRF header was required — the ranking and hunter endpoints are unauthenticated.
+
+### Where the shortcut breaks: hacktivity
+
+The hunter's bug-disclosure history ("hacktivity") is **not a page** — it's a widget embedded inside the profile page that lazy-loads its own data only when scrolled. There is no frontend URL for it, so there's nothing for the `api.` substitution to transform.
+
+This endpoint was found the honest way: DevTools open, scroll the hacktivity feed on a profile page, and watch the request that fires at that moment — `api.yeswehack.com/v2/hacktivity/{slug}?page=1&resultsPerPage=10`. Confirmed, again, by checking the Response body against the entries rendered on screen.
+
+{% hint style="info" %}
+**Two different discovery methods, honestly attributed.** Ranking and hunter-profile were found by guessing the `api.` convention and then confirming via Network/Fetch. Hacktivity had no shortcut available and was found directly through Network/Fetch, with no guess involved.
+{% endhint %}
 
 ***
 
-## Step 1 · Enumerate the Leaderboard
-
-**`name_parser.py` → `names.json`**
+## Step 1 · `name_parser.py` — enumerate the leaderboard
 
 ```
 GET https://api.yeswehack.com/ranking?period=All&page=N
 ```
 
-### The response tells you how many pages exist
+### Input — the raw `/ranking` response (`Codes/ranking.json`)
 
 ```json
 {
   "pagination": { "page": 1, "nb_pages": 4, "results_per_page": 25, "nb_results": 100 },
-  "items": [ ... ]
+  "items": [
+    {
+      "username": "rabhi",
+      "slug": "rabhi",
+      "hunter_profile": { "public": true },
+      "hunter_nationality": null,
+      "points": 84772,
+      "rank": 1,
+      "kyc_status": "V",
+      "avatar": { "...": "..." }
+    },
+    {
+      "username": "Rbcafe",
+      "slug": "rbcafe",
+      "hunter_profile": { "public": false },
+      "points": 18156,
+      "rank": 3
+    }
+  ]
 }
 ```
 
-So: **probe page 1 to learn the bound, then loop a known range.**
+Only `username`, `slug`, and `hunter_profile.public` are used — everything else in the item (`points`, `rank`, `avatar`, `kyc_status`) is discarded at this stage; points/rank are re-fetched per-hunter in Step 2 instead of trusted from this listing.
+
+Page 1 is fetched first to read `pagination.nb_pages`, then every page from 1 to that total is looped:
 
 ```python
 response = requests.get(f"{base_url}?period=All&page=1", headers=headers)
@@ -137,128 +119,155 @@ total_pages = response.json()["pagination"]["nb_pages"]
 
 for page in range(1, total_pages + 1):
     data = requests.get(f"{base_url}?period=All&page={page}", headers=headers).json()
-    ...
 ```
 
-### Each item carries two different identities
+For each hunter in `items`, the script reads `hunter_profile.public` and, only if public, builds a profile link from the server-given `slug`:
 
-```json
-{
-  "username": "st0rm_",
-  "slug": "st0rm-1",
-  "hunter_profile": { "public": true },
-  "points": 12691,
-  "rank": 8
-}
+```python
+hunters.append({
+    "username": item["username"],
+    "public": item["hunter_profile"]["public"],
+    "profile": (
+        f"https://yeswehack.com/hunters/{item['slug']}"
+        if item["hunter_profile"]["public"]
+        else None
+    )
+})
 ```
 
 {% hint style="warning" %}
-**`username` ≠ `slug`.** `username` is the display name. `slug` is the URL-safe key — lowercased, punctuation normalised, numerically de-duplicated on collision. `st0rm_` → `st0rm-1` because `st0rm` was already taken.
-
-Writing `username.lower()` would work for most hunters and silently 404 for a handful — the worst failure mode, because it looks like success. **Use the identifier the server gave you. Never re-derive it.**
-
-Every stage of this pipeline keys on `slug`.
+**`username` ≠ `slug`.** `username` is the display name; `slug` is the URL-safe key the server generates (lowercased, de-duplicated on collision — `st0rm_` → `st0rm-1`). The `slug` is used here only to build the `profile` URL string — it is not stored as its own field in the output. Using `item['slug']` rather than `username.lower()` avoids a silent 404 on any hunter whose slug doesn't match a naive lowercase of their username.
 {% endhint %}
 
-### The privacy gate
-
-```python
-"profile": f"https://yeswehack.com/hunters/{item['slug']}" if item["hunter_profile"]["public"] else None
-```
-
-Not everyone is public — `Rbcafe` sits at **rank 3 with 18,156 points** and `"public": false`. That flag is the platform's own record of what a user consented to expose, so it is honoured rather than probed around. Private hunters keep their ranking row but get `profile: null` and are never fetched again.
+`public: false` hunters get `profile: None` and are permanently excluded from every downstream step — that flag is the platform's own record of what a user consented to expose.
 
 ### Output — `names.json`
 
 ```json
 [
-  { "username": "rabhi",  "slug": "rabhi",   "public": true,  "profile": "https://yeswehack.com/hunters/rabhi" },
-  { "username": "st0rm_", "slug": "st0rm-1", "public": true,  "profile": "https://yeswehack.com/hunters/st0rm-1" },
-  { "username": "Rbcafe", "slug": "rbcafe",  "public": false, "profile": null }
+  { "username": "rabhi",  "public": true,  "profile": "https://yeswehack.com/hunters/rabhi" },
+  { "username": "st0rm_", "public": true,  "profile": "https://yeswehack.com/hunters/st0rm-1" },
+  { "username": "Rbcafe", "public": false, "profile": null }
 ]
 ```
 
-> **\~100 hunters · \~20 private · this file is the worklist for everything downstream.**
+This file is the worklist for `statparse.py`.
 
 ***
 
-## Step 2 · Enrich Each Hunter
-
-**`statparse.py` → `hunters/<slug>/stats.json`**
+## Step 2 · `statparse.py` — enrich each hunter
 
 ```
 GET https://api.yeswehack.com/hunters/{slug}
 ```
 
-### Skip the private ones first
+### Input — the raw `/hunters/{slug}` response (`Codes/hunter_account.json`)
 
-```python
-if hunter["profile"] is None:
-    skipped += 1
-    continue
-```
-
-### The raw response is much wider than what we keep
-
-{% tabs %}
-{% tab title="Raw response" %}
 ```json
 {
   "username": "SecurityReapers",
   "slug": "securityreapers",
   "public_firstname": "Muhammad",
   "public_lastname": "Usman",
+  "hunter_profile": { "public": true, "...": "..." },
   "points": 7350,
   "nb_reports": 490,
   "rank": 25,
   "impact": "18.42",
-  "joined_on": "2023",
-  "nationality": "PK",
-  "avatar": { "...": "..." },
-  "track_records": [ "...", "..." ],
   "kyc_status": "V",
-  "gpg_key": null
+  "avatar": { "...": "..." },
+  "gpg_key": null,
+  "track_records": [ { "...": "..." } ],
+  "joined_on": "2023",
+  "nationality": "PK"
 }
 ```
-{% endtab %}
 
-{% tab title="Narrowed to a stable record" %}
+`track_records` (linked platforms like HackerOne/Bugcrowd), `gpg_key`, `kyc_status`, and `avatar` are all present in the raw response and all discarded — only the eight fields below are kept.
+
+The current version of this script reads the `profile` field from `names.json` — not the `username` — and derives the API URL by substituting the subdomain directly:
+
+```python
+def profile_to_api_url(profile: str) -> str:
+    """https://yeswehack.com/hunters/x -> https://api.yeswehack.com/hunters/x"""
+    return profile.replace("://yeswehack.com/", "://api.yeswehack.com/", 1)
+```
+
+Hunters with `profile: null` are skipped before any request is made:
+
+```python
+profile = hunter.get("profile")
+if profile is None:
+    skipped += 1
+    continue
+```
+
+### Retry behaviour
+
+Requests use a shared `Session`, and 429 responses are retried up to 5 times, honouring the server's own `Retry-After` header when present (falling back to 2 seconds if it's missing):
+
+```python
+for _ in range(max_retries):
+    response = session.get(url, timeout=30)
+    if response.status_code == 429:
+        wait = int(response.headers.get("Retry-After", 2))
+        time.sleep(wait)
+        continue
+    response.raise_for_status()
+    break
+else:
+    raise RuntimeError(f"Gave up on {url} after {max_retries} retries (429).")
+```
+
+If retries are exhausted, that hunter is skipped (caught and logged in `main`) rather than crashing the whole run.
+
+### Narrowing the response
+
 ```python
 return {
     "username": data["username"],
-    "slug":     data["slug"],
-    "name":     name,
+    "name":     name,          # "First Last", or fallback to username if both are blank
     "joined":   data.get("joined_on"),
-    "impact":   float(data.get("impact", 0)),   # ← API sends a STRING
+    "impact":   float(data.get("impact", 0)),   # API sends this as a STRING
     "reports":  data.get("nb_reports", 0),
     "points":   data.get("points", 0),
     "rank":     data.get("rank", 0),
     "country":  data.get("nationality"),
 }
 ```
-{% endtab %}
-{% endtabs %}
 
 {% hint style="danger" %}
-**`"impact": "18.42"` is a string.** Strings sort lexicographically — `"9.5" > "18.42"` — which would quietly corrupt every ranking and aggregation downstream. Cast at the ingestion boundary, once, so every consumer can trust the type.
+**`"impact": "18.42"` is a string in the raw response.** Strings sort lexicographically — `"9.5" > "18.42"` — which would silently corrupt any downstream ranking or aggregation. It's cast to `float` once, at ingestion, so every consumer downstream can trust the type.
 {% endhint %}
 
-### Fall back gracefully on missing names
+`name` falls back through `public_firstname`/`public_lastname`, then to `username` if both are blank — guaranteeing the field is never empty, so downstream code never has to null-check it.
+
+### The hunter folder structure
 
 ```python
-first = data.get("public_firstname") or ""
-last  = data.get("public_lastname")  or ""
-name  = f"{first} {last}".strip() or data["username"]
+hunter_dir = base_dir / username
+hunter_dir.mkdir(exist_ok=True)
+(hunter_dir / "stats.json").write_text(json.dumps(stats, indent=2, ensure_ascii=False))
 ```
 
-`.get()` covers a missing key, `or ""` covers an explicit `null`, and the final fallback guarantees `name` is never empty. Downstream code never null-checks it.
+```
+hunters/
+├── rabhi/
+│   └── stats.json
+├── SecurityReapers/
+│   └── stats.json
+└── ...
+```
 
-### Output — `hunters/securityreapers/stats.json`
+{% hint style="info" %}
+The folder is named by **`username`**, not `slug` — `slug` is only ever used transiently, inside the `profile` → API URL substitution. This directory layout is the entire input to Step 3: `parse_hacktivity.py` reads folder names directly and needs nothing else from `names.json` or the ranking API.
+{% endhint %}
+
+### Output — `hunters/SecurityReapers/stats.json`
 
 ```json
 {
   "username": "SecurityReapers",
-  "slug": "securityreapers",
   "name": "Muhammad Usman",
   "joined": "2023",
   "impact": 18.42,
@@ -269,39 +278,61 @@ name  = f"{first} {last}".strip() or data["username"]
 }
 ```
 
-> **One directory per hunter, named by slug. That directory layout becomes the input to Step 3.**
-
 ***
 
-## Step 3 · Pull the Bug History
-
-**`parse_hacktivity.py` → `hunters/<slug>/hacktivities.json`**
+## Step 3 · `parse_hacktivity.py` — pull the bug history
 
 ```
-GET https://api.yeswehack.com/v2/hacktivity/{slug}?page=N&resultsPerPage=50
+GET https://api.yeswehack.com/v2/hacktivity/{username}?page=N&resultsPerPage=50
 ```
 
-### The worklist is the filesystem, not a file
+### Input — the raw `/v2/hacktivity/{username}` response (`Codes/hunter_hacktivity.json`)
+
+```json
+{
+  "pagination": { "page": 1, "nb_pages": 293, "results_per_page": 50, "nb_results": 14608 },
+  "items": [
+    {
+      "date": "2026-07-24",
+      "status": "resolved",
+      "bug_type": {
+        "name": "Insecure Direct Object Reference (IDOR) (CWE-639)",
+        "slug": "insecure-direct-object-reference-idor-cwe-639",
+        "description": "...",
+        "link": "https://cwe.mitre.org/data/definitions/639.html",
+        "remediation_link": "..."
+      },
+      "hunter": {
+        "username": "rabhi",
+        "slug": "rabhi",
+        "kyc_status": "V",
+        "hunter_profile": { "public": true },
+        "avatar": { "...": "..." }
+      }
+    }
+  ]
+}
+```
+
+`bug_type.description`, `bug_type.link`, `bug_type.remediation_link`, and the entire nested `hunter` object are discarded — the `hunter` block is redundant here since this endpoint is already scoped to one username, and the CWE remediation text isn't part of the dataset this pipeline builds.
+
+### The worklist is the filesystem
 
 ```python
 hunter_dirs = [p for p in sorted(hunters_root.iterdir()) if p.is_dir()]
 for hunter_dir in hunter_dirs:
-    slug = hunter_dir.name
+    username = hunter_dir.name
 ```
 
-Step 2 only created directories for hunters it successfully fetched, so the set of folders is _already_ exactly the set worth processing. This stage knows nothing about `names.json`, the `public` flag, or the ranking API.
+This stage knows nothing about `names.json`, the `public` flag, or the ranking API — it only needs the set of folders Step 2 already created.
 
-{% hint style="info" %}
-**The filesystem is the interface between stages.** Hand this script a hand-made folder with three slugs in it and it works identically.
-{% endhint %}
-
-### The volume changes the loop
+### Pagination bound is re-read every page
 
 ```json
 { "pagination": { "page": 1, "nb_pages": 293, "results_per_page": 50, "nb_results": 14608 } }
 ```
 
-**14,608 entries for a single hunter.** Over a crawl that long, `nb_pages` can genuinely shift — someone discloses a new bug mid-scrape. So instead of a fixed `range`, re-read the bound from _every_ response:
+A single hunter can have thousands of entries, and `nb_pages` can genuinely shift mid-scrape if a new report lands, so the loop re-reads the bound from every response instead of using a fixed `range`:
 
 ```python
 while True:
@@ -312,26 +343,9 @@ while True:
     page += 1
 ```
 
-{% hint style="success" %}
-The browser requested `resultsPerPage=10` because that is what fits the UI widget. Nothing forces a scraper to be that polite — **50 cuts the round trips by 5×.** Observed query parameters are a starting point, not a contract.
-{% endhint %}
+`resultsPerPage=50` is used instead of the browser's own `10` — nothing forces a scraper to match the UI's page size, and 50 cuts round trips fivefold.
 
-### The raw entry
-
-```json
-{
-  "date": "2026-07-21",
-  "status": "resolved",
-  "bug_type": {
-    "name": "Cross-site Scripting (XSS) - Reflected (CWE-79)",
-    "slug": "cross-site-scripting-xss-reflected-cwe-79"
-  }
-}
-```
-
-### Split the CWE off the bug name
-
-The CWE is welded onto the end of a single string. Grouping on it raw would treat reflected and stored XSS as unrelated categories despite both being CWE-79.
+### Splitting the CWE off the bug name
 
 ```python
 _CWE_RE = re.compile(r"\s*\((CWE-\d+)\)\s*$", re.IGNORECASE)
@@ -344,29 +358,23 @@ def _split_bug_type(raw):
 ```
 
 {% hint style="warning" %}
-**The `$` anchor is doing the real work.** Bug names are full of parentheses — `(XSS)`, `(IDOR)`, `(CSRF)`. Anchoring to end-of-string states something honest about the data: _the CWE tag is a suffix, and I will only match it as a suffix._ Everything before `m.start()` is the name, whatever it contains.
-
-`return raw, None` when there is no match — a nullable field is a truthful representation of "this entry has no CWE." Inventing `"CWE-0"` would fabricate a category.
+Anchoring the pattern to end-of-string (`$`) matters because bug names are full of unrelated parentheses (`(XSS)`, `(IDOR)`). The regex only ever treats a trailing `(CWE-nnn)` as the tag; everything before it is the name, whatever it contains. A row with no CWE returns `None` rather than a fabricated `"CWE-0"`.
 {% endhint %}
 
-### Keep both the parsed and the raw form
+### Raw and parsed forms are both kept
 
 ```python
 @dataclass
 class Entry:
-    date: str            # normalised ISO
-    date_raw: str        # exactly as returned
-    bug_name: str        # "Cross-site Scripting (XSS) - Reflected"
-    cwe: str | None      # "CWE-79"
-    bug_type_raw: str    # "Cross-site Scripting (XSS) - Reflected (CWE-79)"
-    status: str          # "Resolved"
+    date: str
+    date_raw: str
+    bug_name: str
+    cwe: str | None
+    bug_type_raw: str
+    status: str
 ```
 
-{% hint style="success" %}
-**Preserve the raw input.** When the parser turns out to be wrong about some edge case, you reparse 14,608 stored records instead of re-crawling them. Parsing is cheap to redo; fetching is not.
-{% endhint %}
-
-Status is normalised with `.capitalize()` — the API returns `"resolved"` / `"new"` / `"closed"` lowercase, and fixing casing at write time means no `.lower()` scattered across every consumer.
+Preserving `bug_type_raw` and `date_raw` means a parsing bug can be fixed by reparsing the stored raw text, without re-crawling the API.
 
 ### Output — `hunters/rabhi/hacktivities.json`
 
@@ -381,47 +389,101 @@ Status is normalised with `.capitalize()` — the API returns `"resolved"` / `"n
     "status": "Resolved"
   },
   {
-    "date": "2026-07-23",
-    "date_raw": "2026-07-23",
-    "bug_name": "HTML Injection",
+    "date": "2026-07-24",
+    "date_raw": "2026-07-24",
+    "bug_name": "Cross-site Scripting (XSS) - Reflected",
     "cwe": "CWE-79",
-    "bug_type_raw": "HTML Injection (CWE-79)",
-    "status": "Resolved"
+    "bug_type_raw": "Cross-site Scripting (XSS) - Reflected (CWE-79)",
+    "status": "Closed"
   }
 ]
 ```
 
 ***
 
-## The Result
+## `hunter_probe.py` — checking that the scrape actually completed
 
-```
-names.json                         ← who exists · who is public
-hunters/
-├── rabhi/
-│   ├── stats.json                 ← points · rank · impact · country
-│   └── hacktivities.json          ← 14,608 entries
-├── securityreapers/
-│   ├── stats.json
-│   └── hacktivities.json
-└── ...
-hunter_stats.csv                   ← 78 rows · flattened join of every stats.json
+`parse_hacktivity.py` writes only the parsed `Entry` list to `hacktivities.json` — it never persists the `pagination` object. That means once the file exists, there is no way to tell whether the scrape genuinely finished or was silently truncated partway through; a truncated output file looks exactly as valid as a complete one.
+
+`hunter_probe.py` exists to close that gap for a single hunter at a time. It reuses the endpoint and retry logic from `parse_hacktivity.py`, but caches the **raw page blobs**, pagination included, instead of discarding them:
+
+```python
+API = "https://api.yeswehack.com/v2/hacktivity/{username}"
+...
+path.write_text(json.dumps(pages), encoding="utf-8")   # raw pages, pagination included
 ```
 
+### GATE — is the scrape complete?
+
+```python
+if feed.declared is None:
+    verdict = "UNKNOWN (no pagination metadata)"
+elif n == feed.declared:
+    verdict = "PASS"
+else:
+    verdict = f"FAIL -- {feed.declared - n} rows short"
 ```
-username,joined,impact,reports,points,rank,country
-SecurityReapers,2023,18.42,490,7350,25,PK
+
+`declared` is `pagination.nb_results` — the server's own stated total across every page. `n` is the actual count of rows collected. If they don't match, the tool says so explicitly and stops there: nothing else is worth reading if the scrape was truncated.
+
+One extra check rides along with a `PASS`: if `declared` lands on a suspiciously round number (100, 500, 1000, 2000, 5000...), it's flagged as a possible server-side cap on the feed rather than a true total — a complete scrape of a capped feed would look identical to a complete scrape of an uncapped one.
+
+### COUNT — how many reports are visible, and how many are missing
+
+```python
+n_new = sum(1 for r in rows if r.status == "new")
 ```
+
+Every report is assumed to enter the feed exactly once via a `new` event, so `n_new` is the estimate of distinct visible reports. If `--official <n>` is supplied (the hunter's officially stated report count), the tool also prints the exact gap:
+
+```python
+gap = official - n_new
+```
+
+This is where investigation stops being automated and becomes a manual, per-hunter check.
 
 {% hint style="info" %}
-**`slug` is the join key threading all four steps.** It comes out of `/ranking`, becomes a directory name, and is the path parameter for both follow-up endpoints. Picking a stable key early is what lets three independently-runnable scripts compose into one dataset.
+**Everything past GATE and COUNT was intentionally removed.** Earlier versions of this script also binned the feed by chronological position and applied an arbitrary statistical threshold (a 15% deviation cutoff, 10 bins by default) to guess whether a report-count gap was caused by left-censoring (old reports whose `new` event fell outside the feed) versus reports that were simply never public. Both the bin count and the 15% threshold were undocumented, arbitrary constants with no principled derivation — not something that holds up if asked "why 15%, why not any other number." That entire hypothesis-testing layer, along with the duplicate-cluster, yearly-density, and status-vocabulary checks, was removed in favor of manual review of the hunters with the largest gaps. `hunter_probe.py` is now strictly a completeness checker for `parse_hacktivity.py`'s output, not a statistical inference tool.
+{% endhint %}
+
+### What the manual review found
+
+The ten hunters with the largest `official - n_new` gap were checked individually: for each, the oldest rows of their hacktivity feed were inspected for `resolved`, `closed`, or `accepted` entries that had no matching `new` row anywhere in the feed — the pattern that would indicate a report whose submission event fell outside the scraped history.
+
+**None of the ten hunters showed this pattern.** Every report visible in their feeds, including the oldest ones, had a matching `new` entry. Since the missing reports don't show up anywhere in the feed — not even as an orphaned terminal status — the most consistent explanation is that the gap between the official report count and the visible `new` count is made up of **private submissions**: reports that count toward the hunter's official total but were never made public in the hacktivity feed at all, rather than reports that are public but whose earliest event was cut off by the feed's visible window.
+
+{% hint style="warning" %}
+**Open question.** This conclusion rests on ten manually-inspected hunters, not the full dataset. It would be worth confirming whether YesWeHack's hunter-stats page distinguishes public vs. private report counts anywhere directly, which would turn this from an inferred explanation into a verified one.
 {% endhint %}
 
 ***
 
-## The Reusable Method
+## The Result
 
-Strip away YesWeHack and this is the procedure:
+```
+names.json
+hunters/
+├── rabhi/
+│   ├── stats.json
+│   └── hacktivities.json
+├── SecurityReapers/
+│   ├── stats.json
+│   └── hacktivities.json
+└── ...
+```
+
+Every hunter's `stats.json` is also flattened into one CSV (`Codes/hunter_stats.csv`):
+
+```csv
+username,joined,impact,reports,points,rank,country
+0xd0m7,2019,19.38,180,3233,82,ES
+0xsnpaii,2023,13.57,436,5448,45,NG
+adibou,2017,23.38,360,7438,24,FR
+```
+
+***
+
+## The Reusable Method
 
 {% stepper %}
 {% step %}
@@ -431,27 +493,21 @@ The data is arriving over a separate request. Find it.
 {% endstep %}
 
 {% step %}
-### Interact with every control
+### Try the `api.` convention, but verify it
 
-Each click reveals a parameter name.
+It's a common shortcut for top-level pages, never a substitute for checking Network/Fetch.
 {% endstep %}
 
 {% step %}
-### Read the URL before the response
+### Widgets need their own discovery
 
-Version prefixes are stated there, never inferred.
+A component that lazy-loads on interaction (scroll, click) has no page URL to transform — it has to be caught firing on the wire.
 {% endstep %}
 
 {% step %}
-### Copy as cURL and replay
+### Self-describing pagination? Use the total, re-read every page
 
-Learn what auth is actually required.
-{% endstep %}
-
-{% step %}
-### Self-describing pagination?
-
-Use the total to bound your loop.
+Totals can drift mid-scrape; don't assume a fixed range stays valid.
 {% endstep %}
 
 {% step %}
@@ -469,12 +525,22 @@ Use the total to bound your loop.
 {% step %}
 ### Normalise types and store raw beside parsed
 
-Do it at the boundary.
+Do it once, at the ingestion boundary.
 {% endstep %}
 
 {% step %}
 ### Let the filesystem be the interface between stages
 {% endstep %}
-{% endstepper %}
 
-> The scraping is the easy part. The reconnaissance — finding an undocumented `/v2/` namespace by _watching a browser do its job_ — is the part worth practising.
+{% step %}
+### Preserve whatever metadata lets you check completeness later
+
+A parser that discards its own pagination totals cannot be audited after the fact.
+{% endstep %}
+
+{% step %}
+### Prefer an exact, falsifiable check over a tuned statistical threshold
+
+An arbitrary percentage cutoff is hard to defend under a follow-up question; a direct count or date comparison isn't.
+{% endstep %}
+{% endstepper %}
