@@ -301,15 +301,13 @@ The output is stored inside each hunter's folder. In a JSON file called hacktivi
 This section was added while data preprocessing was being completed
 {% endhint %}
 
-During the preprocessing phase, there is a noticeable amount of reports that were missing from hacktivities. There was a mismatch with regards to both stats reports from accounts, and reports from hacktivities.
+During the preprocessing phase, there is a noticeable number of reports that were missing from hacktivities. There was a mismatch with regard to both stats reports from accounts and reports from hacktivities.
 
 ## Checking for pagination issues
 
-When `parse_hacktivity.py` was initially created, it writes only the parsed `Entry` list to `hacktivities.json` — it never persists the `pagination` object. That means once the file exists, there is no way to tell whether the scrape genuinely finished or was silently truncated partway through; a truncated output file looks exactly as valid as a complete one.
+When `parse_hacktivity.py` was initially created, it writes only the parsed `Entry` list to `hacktivities.json` . It never persists the `pagination` object. That means once the file exists, there is no way to tell whether the scrape genuinely finished or was silently truncated partway through; a truncated output file looks exactly as valid as a complete one.
 
-`hunter_probe.py` exists to close that gap for a single hunter at a time. It reuses the endpoint and retry logic from `parse_hacktivity.py`, but caches the **raw page blobs**, pagination included, instead of discarding them:
-
-Given that when I initially created parse hacktivity, I simply dropped the nb\_results, which prevented me from counter checking the actual count. hunter\_probe was made to manually check for individual hunters with large error gaps. The checking is done by keeping the nb\_results which is the declared total from the json api. and comparing it to the count of the scraped rows of hacktivity count.
+`hunter_probe.py` exists to close that gap for a single hunter at a time. It reuses the endpoint and retry logic from `parse_hacktivity.py`, but includes pagination, instead of being discarded
 
 ```python
 API = "https://api.yeswehack.com/v2/hacktivity/{username}"
@@ -328,27 +326,38 @@ else:
     verdict = f"FAIL -- {feed.declared - n} rows short"
 ```
 
-`declared` is `pagination.nb_results` — the server's own stated total across every page. `n` is the actual count of rows collected. If they don't match, the tool says so explicitly and stops there: nothing else is worth reading if the scrape was truncated.
+`declared` is `pagination.nb_results` — the server's own stated total across every page. `n` is the actual count of rows collected. The script checks if both the row and nb\_results match.
 
-### COUNT — how many reports are visible, and how many are missing
+The script was run for each hunter with a mismatch in the stat report and hacktivity report. However, no hunter failed the actual count.
 
-```python
-n_new = sum(1 for r in rows if r.status == "new")
-```
+## Missing window for hacktivities
 
-Every report is assumed to enter the feed exactly once via a `new` event, so `n_new` is the estimate of distinct visible reports. If `--official <n>` is supplied (the hunter's officially stated report count), the tool also prints the exact gap:
+Given that there was still a large amount of missing reports, another hypothesis was that there is a cutoff window for the hacktivities. This was observed when some of the hunters joined in 2023, but their first report was in 2025. Under this hypothesis, it might be possible that some of the reports with a new status have been cut off, but their resolved, closed, or accepted status persisted.
 
-```python
-gap = official - n_new
-```
+<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000326.png" alt=""><figcaption><p>Every status transition in this hunter's oldest hacktivity rows has a matching new entry</p></figcaption></figure>
 
-This is where investigation stops being automated and becomes a manual, per-hunter check.
+<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000721.png" alt=""><figcaption><p>A hypothetical edited row: accepted and closed statuses appear with no matching new entry anywhere in the feed </p></figcaption></figure>
 
 ### Manual review of hunters
 
 The ten hunters with the largest error gap were checked individually: for each, the oldest rows of their hacktivity feed were inspected for `resolved`, `closed`, or `accepted` entries that had no matching `new` row anywhere in the feed — the pattern that would indicate a report whose submission event fell outside the scraped history.
 
-**None of the ten hunters showed this pattern.** Every report visible in their feeds, including the oldest ones, had a matching `new` entry. Since the missing reports don't show up anywhere in the feed — not even as an orphaned terminal status — the most consistent explanation is that the gap between the official report count and the visible `new` count is made up of **private submissions**: reports that count toward the hunter's official total but were never made public in the hacktivity feed at all, rather than reports that are public but whose earliest event was cut off by the feed's visible window.
+**None of the ten hunters showed this pattern.** Every report visible in their feeds, including the oldest ones, had a matching `new` entry. Since the missing reports don't show up anywhere in the feed — not even as an orphaned terminal status.
+
+* truff
+* wlayzz
+* kuromatae
+* Al7eX
+* Icare
+* Sicarius
+* Vozec
+* Lodeus
+* effrite
+* Edra
+
+### Possible explanation for the confounding report count
+
+The most consistent explanation is that the gap between the official report count and the visible new count is made up of private submissions: reports that count toward the hunter's official total but were never made public in the hacktivity feed at all, rather than reports that are public but whose earliest event was cut off by the feed's visible window.
 
 ***
 
