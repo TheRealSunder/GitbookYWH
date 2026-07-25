@@ -1,19 +1,16 @@
 ---
-description: >-
-  How the YesWeHack all-time leaderboard, hunter profiles, and public hacktivity
-  feeds were collected and validated.
 icon: spider-web
 ---
 
-# Scraping the YesWeHack Leaderboard
+# Copy of Scraping the YesWeHack Leaderboard
 
-This page documents the YesWeHack all-time leaderboard collection pipeline. It covers leaderboard enumeration, profile statistics, public hacktivity feeds, and completeness checks.
+This section describes the YesWeHack all-time leaderboard scraping pipeline. It collects each hunter's statistics and hacktivities and performs diagnostic checks for missing data.
 
 ***
 
-## 1. Enumerate the leaderboard
+## Enumerating the leaderboard
 
-The pipeline uses the all-time leaderboard. DevTools identified the request that returns leaderboard JSON:
+The all-time leaderboard was selected for scraping. DevTools and the Network tab showed how it loaded data. Each request was inspected to identify the JSON response. The following endpoint returned leaderboard data: [https://api.yeswehack.com/ranking?period=All\&page=1.](https://api.yeswehack.com/ranking?period=All\&page=1.) A Python script uses the `requests` library to send a `GET` request to this endpoint.
 
 ```
 GET https://api.yeswehack.com/ranking?period=All&page=N
@@ -46,9 +43,9 @@ GET https://api.yeswehack.com/ranking?period=All&page=N
 }
 ```
 
-The pipeline retains only `username`, `slug`, and `hunter_profile.public`. It discards `points`, `rank`, `avatar`, and `kyc_status`. It fetches points and rank again for each hunter in the next stage.
+Only `username`, `slug`, and `hunter_profile.public` are used. The script discards `points`, `rank`, `avatar`, and `kyc_status` at this stage.
 
-The pipeline fetches page 1 to read `pagination.nb_pages`. It then fetches every page through that total:
+The script fetches page one to read `pagination.nb_pages`. It then loops through every page:
 
 ```python
 response = requests.get(f"{base_url}?period=All&page=1", headers=headers)
@@ -58,7 +55,7 @@ for page in range(1, total_pages + 1):
     data = requests.get(f"{base_url}?period=All&page={page}", headers=headers).json()
 ```
 
-For each item, the script reads `hunter_profile.public`. It builds a profile URL from the server-provided `slug` only for public hunters:
+For each hunter in `items`, the script reads `hunter_profile.public`. For public profiles, it builds a profile link from the server-provided `slug`:
 
 ```python
 hunters.append({
@@ -72,7 +69,7 @@ hunters.append({
 })
 ```
 
-Hunters with `public: false` receive `profile: None`. The pipeline excludes them from all later stages.
+Hunters with `public: false` receive `profile: None`. The pipeline excludes them from all downstream steps.
 
 ### Output — `names.json`
 
@@ -84,15 +81,17 @@ Hunters with `public: false` receive `profile: None`. The pipeline excludes them
 ]
 ```
 
-`names.json` is the worklist for `statparse.py`.
+This file is the worklist for `statparse.py`.
 
 ***
 
-## 2. Collect individual hunter statistics
+## Getting individual hunter statistics
 
 ```
 GET https://api.yeswehack.com/hunters/{slug}
 ```
+
+To get the individual stats of hunters, a script called `statparse.py` was made.
 
 ### Input — the raw `/hunters/{slug}` response (`Codes/hunter_account.json`)
 
@@ -116,7 +115,7 @@ GET https://api.yeswehack.com/hunters/{slug}
 }
 ```
 
-The response includes `track_records`, `gpg_key`, `kyc_status`, and `avatar`. The pipeline discards those fields and retains the eight fields below.
+The raw response includes `track_records`, `gpg_key`, `kyc_status`, and `avatar`. The script discards these fields. It keeps only the eight fields below.
 
 The script reads `profile` from `names.json`. It derives the API URL by replacing the subdomain:
 
@@ -128,9 +127,9 @@ def profile_to_api_url(profile: str) -> str:
 
 The script skips hunters with `profile: null` before making a request.
 
-### Handle rate-limit responses
+### Avoiding API rate-limiting error
 
-Requests share a `Session`. The script retries HTTP 429 responses up to five times. It uses the `Retry-After` header when available, or waits two seconds otherwise:
+Requests use a shared `Session`. The script retries 429 responses up to five times. It uses the `Retry-After` header when available. Otherwise, it waits two seconds:
 
 ```python
 for _ in range(max_retries):
@@ -145,9 +144,9 @@ else:
     raise RuntimeError(f"Gave up on {url} after {max_retries} retries (429).")
 ```
 
-If retries are exhausted, `main` logs and skips that hunter. The remaining collection continues.
+If retries are exhausted, `main` catches and logs the error. The pipeline skips that hunter and continues.
 
-### Retain profile fields
+### Narrowing the response
 
 ```python
 return {
@@ -162,11 +161,11 @@ return {
 }
 ```
 
-`name` uses `public_firstname` and `public_lastname` when present. It falls back to `username` when both fields are blank. This keeps `name` non-empty for downstream processing.
+`name` uses `public_firstname` and `public_lastname` when available. If both are blank, it uses `username`. This ensures the field is never empty and removes downstream null checks.
 
-### Store profile statistics
+### The hunter folder structure
 
-The pipeline creates one directory per hunter. Each directory uses the hunter's `username` and stores profile statistics in JSON:
+Each hunter has a directory named after their `username`. The directory stores their statistics in a JSON file.
 
 ```python
 hunter_dir = base_dir / username
@@ -200,7 +199,7 @@ hunters/
 
 ***
 
-## 3. Parse public hacktivity
+## Parsing the hunter's hacktivity
 
 ```
 GET https://api.yeswehack.com/v2/hacktivity/{username}?page=N&resultsPerPage=50
@@ -232,9 +231,9 @@ GET https://api.yeswehack.com/v2/hacktivity/{username}?page=N&resultsPerPage=50
 }
 ```
 
-The pipeline discards `bug_type.description`, `bug_type.link`, `bug_type.remediation_link`, and the nested `hunter` object.
+`bug_type.description`, `bug_type.link`, `bug_type.remediation_link`, and the entire nested `hunter` object are discarded.
 
-### Use the filesystem as the worklist
+### The worklist is the filesystem
 
 ```python
 hunter_dirs = [p for p in sorted(hunters_root.iterdir()) if p.is_dir()]
@@ -242,9 +241,9 @@ for hunter_dir in hunter_dirs:
     username = hunter_dir.name
 ```
 
-The pipeline uses each hunter directory name to request that hunter's hacktivity feed.
+The script uses each hunter directory name to parse that hunter's hacktivity.
 
-### Separate the CWE from the bug name
+### Splitting the CWE off the bug name
 
 ```python
 _CWE_RE = re.compile(r"\s*\((CWE-\d+)\)\s*$", re.IGNORECASE)
@@ -256,7 +255,7 @@ def _split_bug_type(raw):
     return raw[:m.start()].strip(), m.group(1).upper()
 ```
 
-### Retain raw and parsed values
+### Raw and parsed forms are both kept
 
 ```python
 @dataclass
@@ -269,11 +268,11 @@ class Entry:
     status: str
 ```
 
-`bug_type_raw` and `date_raw` preserve the source values. A parsing defect can therefore be fixed without collecting the API again.
+The pipeline preserves `bug_type_raw` and `date_raw`. It can fix parsing errors by reparsing stored raw text. It does not need to re-crawl the API.
 
-### Output — `hunters/rabhi/hacktivities.json`
+### Output — `hunters/<hunter_name>/hacktivities.json`
 
-The pipeline stores each hunter's output as `hacktivities.json` in their directory:
+The pipeline stores the output in `hacktivities.json` within each hunter directory.
 
 ```json
 [
@@ -298,27 +297,27 @@ The pipeline stores each hunter's output as `hacktivities.json` in their directo
 
 ***
 
-## 4. Reconcile profile and hacktivity report counts
+## Confounding report count from stats vs hacktivities
 
 {% hint style="info" %}
-This reconciliation was added during data preprocessing.
+This section was added during data preprocessing.
 {% endhint %}
 
-Profile statistics and hacktivity feeds report different totals. The following checks determine whether incomplete pagination caused the difference.
+During preprocessing, many reports were missing from hacktivities. Account statistics did not match hacktivity report counts.
 
-### Check pagination completeness
+## Checking for pagination issues
 
-The original `parse_hacktivity.py` writes only parsed `Entry` records to `hacktivities.json`. It does not retain the `pagination` object. A truncated file therefore looks the same as a complete file.
+`parse_hacktivity.py` writes only parsed `Entry` values to `hacktivities.json`. It does not store the `pagination` object. A saved file cannot show whether scraping completed or stopped early. A truncated file looks valid.
 
-`hunter_probe.py` addresses this limitation for one hunter at a time. It reuses the endpoint and retry logic from `parse_hacktivity.py`, but retains pagination metadata:
+`hunter_probe.py` closes this gap for one hunter at a time. It reuses the endpoint and retry logic from `parse_hacktivity.py`  while storing pagination:
 
 ```python
 API = "https://api.yeswehack.com/v2/hacktivity/{username}"
 ...
-path.write_text(json.dumps(pages), encoding="utf-8")   # raw pages, pagination included
+path.write_text(json.dumps(pages), encoding="utf-8") 
 ```
 
-#### Determine whether a scrape completed
+### Checking if the scrape was completed
 
 ```python
 if feed.declared is None:
@@ -329,23 +328,23 @@ else:
     verdict = f"FAIL -- {feed.declared - n} rows short"
 ```
 
-`declared` is `pagination.nb_results`, the server's total across all pages. `n` is the number of collected rows. The script compares the two values.
+`declared` is `pagination.nb_results`, the server's total across all pages. `n` is the collected row count. The script compares these values.
 
-The probe ran for every hunter with mismatched profile and hacktivity totals. Every probe passed the row-count check.
+The script ran for every hunter with mismatched statistics and hacktivity counts. No hunter failed the row-count check.
 
-### Test the visible-history hypothesis
+## Missing window for hacktivities
 
-The remaining discrepancy suggested a possible visible-history cutoff. Some hunters joined in 2023, but their earliest visible report is from 2025. Under this hypothesis, older `new` events might be absent while later `resolved`, `closed`, or `accepted` events remain.
+Many reports remained missing. One hypothesis was a hacktivity cutoff window. Some hunters joined in 2023 but had their first visible report in 2025. Their `new` events may have been cut off while `resolved`, `closed`, or `accepted` events remained.
 
-<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000326.png" alt="A hunter&#x27;s oldest hacktivity rows, where every status transition has a matching new entry."><figcaption><p>Every status transition in this hunter's oldest hacktivity rows has a matching new entry</p></figcaption></figure>
+<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000326.png" alt="Oldest hacktivity rows show each status transition paired with a new entry."><figcaption><p>Every status transition in this hunter's oldest hacktivity rows has a matching new entry.</p></figcaption></figure>
 
-<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000721.png" alt="A hypothetical hacktivity row with accepted and closed statuses but no matching new entry."><figcaption><p>A hypothetical edited row: accepted and closed statuses appear with no matching new entry anywhere in the feed</p></figcaption></figure>
+<figure><img src=".gitbook/assets/Screenshot 2026-07-26 000721.png" alt="Example of accepted and closed statuses without a matching new entry."><figcaption><p>A hypothetical edited row: accepted and closed statuses have no matching new entry in the feed.</p></figcaption></figure>
 
-#### Review high-discrepancy hunters
+### Manual review of hunters
 
-The ten hunters with the largest discrepancies were reviewed individually. For each hunter, the oldest rows were checked for `resolved`, `closed`, or `accepted` entries without a matching `new` event. That pattern would indicate a submission outside the visible history.
+The ten hunters with the largest gaps were checked individually. Their oldest hacktivity rows were inspected for `resolved`, `closed`, or `accepted` entries without a matching `new` row. This pattern would indicate a submission outside the scraped history.
 
-**None of the ten hunters showed this pattern.** Every visible report, including the oldest rows, had a matching `new` event. The missing reports do not appear as orphaned terminal-status events.
+**None of the ten hunters showed this pattern.** Every visible report, including the oldest, had a matching `new` entry. The missing reports do not appear anywhere in the feed. This includes orphaned terminal statuses.
 
 * truff
 * wlayzz
@@ -358,15 +357,13 @@ The ten hunters with the largest discrepancies were reviewed individually. For e
 * effrite
 * Edra
 
-### Likely explanation
+### Possible explanation for the confounding report count
 
-The evidence supports private submissions as the most likely explanation. These reports count toward the official profile total but never appear in the public hacktivity feed. The data does not support a visible-history cutoff.
+The most consistent explanation is private submissions. These reports count toward the official total but never appear in the public hacktivity feed. The gap likely does not result from public reports outside the visible window.
 
 ***
 
-## 5. Result
-
-The collection pipeline produces a public-hunter worklist and per-hunter profile and hacktivity files:
+## The Result
 
 ```
 names.json
