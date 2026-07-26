@@ -1,7 +1,7 @@
 ---
 description: >-
-  Does a hunter's accepted-report count predict their total points? A Spearman
-  rank-correlation analysis across 81 public hunter profiles.
+  This section conducts a Spearman Correlation between a hunter's reports and
+  the total points they earned.
 icon: chart-line
 ---
 
@@ -9,9 +9,7 @@ icon: chart-line
 
 ## Overview
 
-This page documents the end-to-end analysis that investigates whether the number of accepted bug reports submitted by a hunter predicts the total number of points they earn on the platform.
-
-The analysis covers **81 public hunter profiles** drawn from a dataset of 100 ranked hunters. The remaining 19 had undisclosed public profiles and were excluded (see [Limitations](reports-vs.-points-correlation-analysis.md#limitations-and-future-research)).
+The analysis covers **81 public hunter profiles** drawn from a dataset of 100 ranked hunters. The remaining 19 had undisclosed public profiles and were excluded.
 
 ***
 
@@ -23,10 +21,7 @@ The analysis covers **81 public hunter profiles** drawn from a dataset of 100 ra
 
 ## Hypotheses
 
-| Symbol | Statement                                                                         |
-| ------ | --------------------------------------------------------------------------------- |
-| **H₀** | There is no relationship between accepted reports and total points earned (ρ = 0) |
-| **Hₐ** | There is a relationship between accepted reports and total points earned (ρ ≠ 0)  |
+<table><thead><tr><th width="97">Symbol</th><th>Statement</th></tr></thead><tbody><tr><td><strong>H₀</strong></td><td>There is no relationship between reports and total points earned (ρ = 0)</td></tr><tr><td><strong>Hₐ</strong></td><td>There is a relationship between reports and total points earned (ρ ≠ 0)</td></tr></tbody></table>
 
 Significance level: **α = 0.05**
 
@@ -100,7 +95,9 @@ Extreme values are present in both variables. The maximum report count (5,610, f
 {% step %}
 ### Monotonicity
 
-Exploratory scatter plots (linear and log–log, see [Visualisations](reports-vs.-points-correlation-analysis.md#visualisations)) show a consistently increasing, monotonic relationship between reports and points rather than a straight-line one. This is further evidenced by the divergence between Spearman ρ and Pearson r (see [Results](reports-vs.-points-correlation-analysis.md#results)).
+Exploratory scatter plots show a consistently increasing, monotonic relationship between reports and points rather than a straight-line one.
+
+<div><figure><img src=".gitbook/assets/Screenshot 2026-07-26 233736.png" alt=""><figcaption><p>Reports and Points scatter plot with outlier</p></figcaption></figure> <figure><img src=".gitbook/assets/Screenshot 2026-07-26 233706.png" alt=""><figcaption><p>Reports and Points scatter plot with outlier</p></figcaption></figure></div>
 {% endstep %}
 {% endstepper %}
 
@@ -139,16 +136,6 @@ The table below summarises central tendency, spread, and distributional shape fo
 | Shapiro-Wilk W     | 0.393      | 0.367        |
 | Shapiro-Wilk p     | < .001     | < .001       |
 
-***
-
-## Visualisation
-
-The script produces a side-by-side scatter plot with both a linear and a log–log axis.
-
-<figure><img src=".gitbook/assets/reports_vs_points.png" alt=""><figcaption><p>Linear panel (left) shows the raw cluster of hunters with Spearman ρ in the title; log–log panel (right) compresses the range so the full 81-hunter population is readable.</p></figcaption></figure>
-
-***
-
 ## Results
 
 Spearman's rank correlation was computed for three variable pairs. The points–rank pair is discussed separately because it is a structural relationship, not a behavioural finding.
@@ -180,26 +167,18 @@ The coefficient barely moves from 0.875 to 0.870.
 
 ## Limitations and Future Research
 
-### Hunter tenure
+### Regression Analysis
 
-A hunter active on the platform for longer will naturally accumulate more reports and points. The observed correlation may partly reflect differences in account age rather than a direct link between activity and reward. Future work could control for tenure by including account creation date as a covariate (`joined` is already present in `stats.json`), or by analysing reports-per-month and points-per-month instead of raw totals. No partial correlation or tenure-adjusted analysis has been run yet — this remains an open item, not a completed check.
-
-### Undisclosed profiles
-
-Of the 100 ranked hunters, **19 had undisclosed public profiles** and were excluded (down from 22 in the previous version of this page, after 3 additional public profiles were located). If disclosure is systematically related to performance level — for example, if top-ranked hunters are more or less likely to make their profiles public — the 81-hunter sample may not be representative of the full population. Future work could examine whether disclosed and undisclosed hunters differ in activity level, and whether the correlation holds across the full 100.
+An attempt was made to fit a linear regression of `points ~ reports`, specifically to answer _by how much_ points move for a given increase in reports. This was tested and did not hold up under standard regression assumption checks: residuals failed both the homoscedasticity test (Breusch-Pagan p = 0.010) and the normality test (Shapiro-Wilk p < .001), driven by the same heavy skew and outliers noted above. A log-log specification (`log(points) ~ log(reports)`) was tried next and fixed the normality issue, but homoscedasticity still failed (Breusch-Pagan p = 0.00017).
 
 ### Report severity
 
-The dataset records accepted report counts but not severity or reward-per-report. Two hunters with equal report counts can have very different point totals depending on whether they filed critical versus low-severity reports. The `points_per_report` column in the CSV export approximates this, but a full severity breakdown would require the per-report `hacktivities.json` data already collected alongside each `stats.json`.
+The dataset records accepted report counts but not severity or reward-per-report. Two hunters with equal report counts can have very different point totals depending on report severity.
 
 ***
 
 ## Conclusion
 
-Spearman's rank correlation analysis found a **very strong, statistically significant positive monotonic relationship** between accepted reports and total points earned among the 81 public hunters analysed (ρ = +0.875, p = 1.33e-26). The null hypothesis of no relationship was rejected at α = 0.05.
-
-The log–log scatter and the divergence between ρ and Pearson r both indicate that the relationship is **monotone but not linear**: points grow disproportionately faster than reports at the high end of the leaderboard, consistent with high-volume hunters also tending to file higher-severity reports or accumulate tenure-based bonuses — though this specific explanation has not itself been tested and should be read as a plausible account, not a demonstrated one. This non-linearity does not weaken the main finding — Spearman is designed to capture it — but it means a simple linear model would underestimate the reward for the most active hunters. The sensitivity check above confirms this conclusion is not an artifact of the single most extreme hunter: removing them changes ρ by only 0.005.
-
-The confounds noted above (tenure, disclosure bias, severity mix) should be kept in mind when interpreting the direction and magnitude of this association.
+Spearman's rank correlation analysis found a **very strong, statistically significant positive monotonic relationship** between accepted reports and total points earned among the 81 public hunters analysed (ρ = +0.875, p = 1.33e-26).
 
 ***
