@@ -98,7 +98,7 @@ Extreme values are present in both variables. The maximum report count (5,610, f
 {% step %}
 ### Homoscedasticity
 
-Pearson's r also assumes that the spread of one variable stays roughly consistent across the range of the other, rather than fanning out. A preliminary linear fit of points on reports was used only to check this: a Breusch-Pagan test on its residuals rejected constant variance (p = 0.010), meaning prediction errors grow larger as reports and points increase rather than staying evenly sized. This is a fourth reason Pearson is unsuitable here, alongside non-normality, skew, and outliers. Spearman carries no equivalent requirement, since it correlates ranks rather than raw magnitudes.
+A Breusch-Pagan test on its residuals rejected constant variance (p = 0.010), meaning prediction errors grow larger as reports and points increase rather than staying evenly sized.
 {% endstep %}
 
 {% step %}
