@@ -1,7 +1,7 @@
 ---
 description: >-
-  Does a hunter's leaderboard rank correlate with how specialized or diversified
-  their report portfolio is, measured via Shannon entropy?
+  Does vulnerability specialization, measured via Shannon entropy over CWE
+  categories, correlate with hunter rank?
 icon: shuffle
 ---
 
@@ -9,7 +9,27 @@ icon: shuffle
 
 ## Research Question
 
-Is a hunter's leaderboard rank associated with their degree of specialization or diversification across vulnerability categories?
+Does vulnerability specialization correlate with hunter rank?
+
+***
+
+## Definitions
+
+**Vulnerability specialization** is defined as the concentration of a hunter's reporting effort across vulnerability classes. Hunters whose reports are disproportionately concentrated within one or a few vulnerability classes exhibit greater specialization, whereas hunters whose reports are distributed more evenly across multiple vulnerability classes exhibit greater generalization.
+
+**Generalization** refers to the distribution of reporting effort across a wider variety of vulnerability classes, resulting in higher Shannon entropy values.
+
+***
+
+## Statistical Methods
+
+### Shannon Entropy
+
+For each hunter, Shannon entropy (in bits) is calculated from the distribution of Common Weakness Enumeration (CWE) categories in their accepted reports. Lower entropy values indicate greater concentration of reporting effort (greater specialization) and higher entropy values indicate greater diversity of reporting effort (greater generalization).
+
+### Spearman Correlation
+
+Spearman's rank correlation coefficient is used to assess the monotonic relationship between Shannon entropy and hunter rank. Spearman's correlation is selected because hunter rank is an ordinal variable and exploratory data analysis indicated that the variables are non-normally distributed and contain outliers.
 
 ***
 
@@ -36,7 +56,7 @@ Reads every hacktivity record whose `status` is `"New"`.
 {% step %}
 ### Group by vulnerability category
 
-Groups those records by vulnerability category (e.g. `bug_name` or `cwe`), producing a count per category.
+Groups those records by CWE identifier (`cwe`), producing a count per category. The rationale for using `cwe` rather than the free-text `bug_name` field is covered below.
 {% endstep %}
 
 {% step %}
@@ -64,8 +84,17 @@ def shannon_entropy(counts: Counter) -> float:
 {% endstepper %}
 
 {% hint style="info" %}
-Only `entropy_bits` (the raw value of $H$) is used in this analysis. Normalized entropy (`entropy_norm = H / log2(k)`) is **not used**, because normalization conflates two distinct properties — how evenly spread the reports are and how many categories were touched — making it less suited to a between-hunter comparison on the diversity dimension alone.
+Only `entropy_bits` (the raw value of $H$) is used in this analysis. Normalizing entropy against the theoretical maximum for a hunter's category count (`entropy_norm = H / log2(k)`) was considered and phased out, because normalization conflates two distinct properties — how evenly spread the reports are and how many categories were touched — making it less suited to a between-hunter comparison on the diversity dimension alone. No `entropy_max` or `entropy_norm` column is produced by `ShannonEntropy.py` or present in `hunter_entropy.csv`.
 {% endhint %}
+
+### Why CWE Instead of `bug_name`
+
+Entropy could be computed over either the free-text `bug_name` field or the standardized `cwe` field present in each hacktivity record. `cwe` was chosen for the following reasons:
+
+* `bug_name` is not a standardized taxonomy. The same underlying weakness can appear under multiple labels — for example, "Reflected XSS", "Stored XSS" and "DOM XSS" are all manifestations of CWE-79 (Cross-site Scripting), but as three distinct `bug_name` values they would inflate a hunter's entropy score even where the underlying work is concentrated in a single vulnerability class.
+* Naming conventions vary by program: the same weakness may be labelled "Reflected XSS", "Non-persistent XSS", "Cross Site Scripting" or "HTML Injection" depending on the platform. Entropy computed over `bug_name` would partly measure differences in labelling conventions rather than differences in the breadth of vulnerability classes a hunter works in.
+* `cwe` provides a fixed, program-independent category set, so entropy computed over it measures breadth across vulnerability classes rather than breadth across report labels — which is what specialization refers to in the Definitions above.
+* `bug_name` is not discarded from the analysis. It remains available as descriptive information about each report, but the entropy calculation itself is based on `cwe`.
 
 ### What the entropy value means for each hunter
 
@@ -76,7 +105,7 @@ A hunter's `entropy_bits` score reflects how evenly their accepted reports are s
 * **High entropy:** Reports are spread across many categories with roughly equal frequency. The hunter is broadly diversified.
 {% endhint %}
 
-For example, `rabhi` (rank 1, 5 610 reports, `entropy_bits = 3.3179`) is moderately concentrated relative to the theoretical maximum for 47 categories, while `Brumens` (rank 100, 125 reports, `entropy_bits = 4.3796` across 28 categories) shows notably more uniform spread within their smaller portfolio.
+For example, `rabhi` (rank 1, 5 610 reports, `entropy_bits = 2.7254`) is moderately concentrated relative to the theoretical maximum for 43 distinct CWE categories, while `Brumens` (rank 100, 125 reports, `entropy_bits = 3.8087` across 24 categories) shows notably more uniform spread within their smaller portfolio.
 
 ***
 
@@ -129,16 +158,16 @@ rho, pvalue = spearmanr(df["rank"], df["entropy_bits"])
 
 ### Results
 
-| Statistic            | Value   |
-| -------------------- | ------- |
-| Spearman's $\rho$    | −0.0489 |
-| p-value (two-tailed) | 0.6647  |
-| N                    | 81      |
+| Statistic            | Value  |
+| -------------------- | ------ |
+| Spearman's $\rho$    | 0.0147 |
+| p-value (two-tailed) | 0.8966 |
+| N                    | 81     |
 
 ### Interpretation
 
-The correlation coefficient of $\rho = -0.0489$ is negligible in magnitude. The negative sign indicates that higher-ranked hunters (lower rank number) have a very slight tendency toward higher entropy — i.e., marginally more diversified — but the effect is too small to be meaningful.
+The correlation coefficient of $\rho = 0.0147$ is negligible in magnitude and close to zero. The (weakly) positive sign indicates that higher-ranked hunters (lower rank number) have a very slight tendency toward lower entropy — i.e., marginally more specialized — but the effect is far too small to be meaningful.
 
 {% hint style="info" %}
-The p-value of $0.6647$ is far above $\alpha = 0.05$. The null hypothesis cannot be rejected. There is **no statistically significant association** between a hunter's leaderboard rank and their Shannon entropy (diversification) across vulnerability categories in this dataset.
+The p-value of $0.8966$ is far above $\alpha = 0.05$. The null hypothesis cannot be rejected. There is **no statistically significant association** between a hunter's leaderboard rank and their Shannon entropy (diversification) across vulnerability categories, measured by CWE, in this dataset.
 {% endhint %}
