@@ -1,7 +1,7 @@
 ---
 description: >-
-  How the raw hacktivity export for 81 hunters is cleaned, normalized, and
-  verified before any entropy or correlation analysis.
+  Before any statistical analysis, the raw data is checked for possible missing
+  values, encoding errors, inconsistent labels and improper data types.
 icon: broom
 ---
 
@@ -9,9 +9,9 @@ icon: broom
 
 ## Overview
 
-The raw hacktivity export cannot be analysed as-is. Three problems make the raw label field unusable as a categorical variable:
+Upon checking the raw data using `stat_checker.py` , there were 3 issues regarding the hacktivity report.
 
-1. **Multiple naming schemes.** The same vulnerability family appears under canonical HackerOne labels, OWASP Top 10 (2017) labels, and OWASP Top 10 (2013) labels.
+1. **Multiple naming schemes.** The same vulnerability appears as different naming schemes: Canonical labels ( Cross-site Scripting (XSS) - Reflected/Stored/Generic/DOM), OWASP Top 10 2017 labels (OWASP-A7-Cross-Site Scripting (XSS)), and OWASP Top 10 2013 labels (OWASP-2013-A3-Cross-Site Scripting (XSS)).&#x20;
 2. **Records with no vulnerability.** Rows marked `Not Applicable (CWE-NULL)` or `None Applicable` carry no CWE and describe no finding.
 3. **Missing CWE fields.** Legacy-labelled records were never assigned a CWE identifier, so any CWE-keyed aggregation silently dropped them.
 
