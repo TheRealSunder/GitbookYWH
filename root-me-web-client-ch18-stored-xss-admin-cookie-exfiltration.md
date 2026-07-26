@@ -93,3 +93,17 @@ This vulnerability was scored as if it were in a production web application. Not
 `E:H/RL:U/RC:C`
 
 <table><thead><tr><th width="123">Metric</th><th width="149">Value</th><th>Justification</th></tr></thead><tbody><tr><td><strong>Exploit Code Maturity (E)</strong></td><td>High (H)</td><td>No specialized exploit development is required. The payload is a hand-crafted <code>&#x3C;script></code> tag and a <code>new Image().src</code> for cookie exfiltration to an external endpoint.</td></tr><tr><td><strong>Remediation Level (RL)</strong></td><td>Unavailable (U)</td><td>No official patch, temporary fix, or documented workaround is available for the affected application.</td></tr><tr><td><strong>Report Confidence (RC)</strong></td><td>Confirmed (C)</td><td>The write-up is a first-person, fully reproduced confirmation of the vulnerability.</td></tr></tbody></table>
+
+## Mitigation
+
+### **Issue**
+
+The website stores whatever users type and shows it to other visitors without changing it, so if someone types `<script>...</script>`, the victim's browser treats it as real code and runs it.
+
+### **Fix**
+
+HTML-encode messages when displaying them (turning `<` into `&lt;`, etc.) so the browser shows the text literally instead of executing it.
+
+Using `htmlspecialchars($msg, ENT_QUOTES, 'UTF-8')` in PHP, or an allowlist sanitizer like `DOMPurify` if you need to permit some formatting.&#x20;
+
+As backups, add a Content-Security-Policy header and set `HttpOnly` on cookies so they can't be stolen via `document.cookie.`
