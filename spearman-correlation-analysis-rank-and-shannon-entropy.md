@@ -56,7 +56,9 @@ Reads every hacktivity record whose `status` is `"New"`.
 {% step %}
 ### Group by vulnerability category
 
-Groups those records by CWE identifier (`cwe`), producing a count per category. The rationale for using `cwe` rather than the free-text `bug_name` field is covered below.
+Groups those records by CWE identifier (`cwe`), producing a count per category.
+
+
 {% endstep %}
 
 {% step %}
@@ -66,7 +68,7 @@ Using the standard formula:
 
 $$H = -\sum_{i} p_i \log_2 p_i$$
 
-where $p\_i$ is the proportion of reports that fall into category $i$. The implementation in `shannon.py` is:
+where $$p_i$$ is the proportion of reports that fall into category $$i$$. The implementation in `shannon.py` is:
 
 ```python
 def shannon_entropy(counts: Counter) -> float:
@@ -85,6 +87,8 @@ def shannon_entropy(counts: Counter) -> float:
 
 {% hint style="info" %}
 Only `entropy_bits` (the raw value of $H$) is used in this analysis. Normalizing entropy against the theoretical maximum for a hunter's category count (`entropy_norm = H / log2(k)`) was considered and phased out, because normalization conflates two distinct properties — how evenly spread the reports are and how many categories were touched — making it less suited to a between-hunter comparison on the diversity dimension alone. No `entropy_max` or `entropy_norm` column is produced by `ShannonEntropy.py` or present in `hunter_entropy.csv`.
+
+
 {% endhint %}
 
 ### Why CWE Instead of `bug_name`
