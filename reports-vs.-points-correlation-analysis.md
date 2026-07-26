@@ -5,17 +5,13 @@ description: >-
 icon: chart-line
 ---
 
-# Reports vs. Points — Correlation Analysis
+# Reports vs. Points Correlation Analysis
 
 ## Overview
 
 This page documents the end-to-end analysis that investigates whether the number of accepted bug reports submitted by a hunter predicts the total number of points they earn on the platform.
 
 The analysis covers **81 public hunter profiles** drawn from a dataset of 100 ranked hunters. The remaining 19 had undisclosed public profiles and were excluded (see [Limitations](reports-vs.-points-correlation-analysis.md#limitations-and-future-research)).
-
-{% hint style="info" %}
-**Update.** An earlier version of this page reported 78 disclosed profiles out of 100. Three additional public hunter profiles were located since, raising the analysed sample to 81 (and the undisclosed count down to 19). Every statistic on this page is recomputed from the current 81-hunter dataset; none of the earlier 78-hunter figures are reused.
-{% endhint %}
 
 ***
 
@@ -39,6 +35,8 @@ Significance level: **α = 0.05**
 ## Data Pipeline
 
 Each hunter's data is stored in a per-folder `stats.json` file and loaded into a single pandas DataFrame before analysis.
+
+The report count that will be used in this analysis is from `stats.json`, not `hacktivities.json`
 
 **Directory layout**
 
@@ -68,64 +66,6 @@ root/
   "country": "FR"
 }
 ```
-
-**Loading and cleaning (simplified)**
-
-```python
-def load_stats(hunters_dir: Path) -> pd.DataFrame:
-    records = []
-    for stats_path in sorted(hunters_dir.glob("*/stats.json")):
-        with stats_path.open(encoding="utf-8") as fh:
-            data = json.load(fh)
-        data["_folder"] = stats_path.parent.name
-        records.append(data)
-    return pd.DataFrame(records)
-
-def clean(df: pd.DataFrame) -> pd.DataFrame:
-    for col in ("points", "reports", "rank", "impact"):
-        if col in df:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-    # Name resolution: profile name → username → folder name
-    for src in ("name", "username", "_folder"):
-        if src in df.columns:
-            df["hunter"] = df.get("hunter", pd.NA)
-            df["hunter"] = df["hunter"].fillna(df[src])
-    return df
-```
-
-### Steps to reproduce
-
-{% stepper %}
-{% step %}
-### Collect per-hunter stats
-
-Every disclosed hunter's `stats.json` lives under `Codes/hunters/<name>/`. `load_stats()` globs all 81 files into one DataFrame.
-{% endstep %}
-
-{% step %}
-### Clean and coerce types
-
-`clean()` forces `points`, `reports`, `rank` and `impact` to numeric, then resolves a single display name per hunter from `name` → `username` → folder name, in that priority order.
-{% endstep %}
-
-{% step %}
-### Run the assumption checks
-
-Independence, normality (Shapiro-Wilk), outlier magnitude, and monotonicity are checked before any test is chosen (see [Assumption Checks](reports-vs.-points-correlation-analysis.md#assumption-checks) below).
-{% endstep %}
-
-{% step %}
-### Compute Spearman (and Pearson, for contrast)
-
-`spearman()` runs both correlations for each variable pair, prints tie counts, and flags a monotone-but-not-linear relationship whenever |ρ − r| exceeds 0.10.
-{% endstep %}
-
-{% step %}
-### Export the scatter plot and CSV
-
-`plot_scatter()` writes the linear/log-log scatter with a median-points-per-report reference line; `export_csv()` writes the per-hunter summary table sorted by rank.
-{% endstep %}
-{% endstepper %}
 
 ***
 
@@ -179,24 +119,6 @@ Exploratory scatter plots (linear and log–log, see [Visualisations](reports-vs
 
 Spearman correlates the **ranks** of the values rather than the values themselves. This makes it robust to the heavy right tail that leaderboard fields tend to have and detects any monotone relationship rather than only a linear one.
 
-Pearson's r is reported alongside Spearman's ρ as a contrast metric only — not as a primary finding.
-
-```python
-sp_result  = sps.spearmanr(pair["reports"], pair["points"])
-rho, p     = sp_result.correlation, sp_result.pvalue
-
-pear_result        = sps.pearsonr(pair["reports"], pair["points"])
-pear_r, pear_p     = pear_result.statistic, pear_result.pvalue
-```
-
-{% hint style="info" %}
-**Note on divergence.** When |ρ − r| > 0.10, the script flags the gap and notes that the relationship is monotone but not linear — for example, points growing disproportionately faster than reports at the top end of the leaderboard.
-{% endhint %}
-
-{% hint style="info" %}
-**A separate regression-based check on this same relationship exists.** The Statistical Inference section of this space includes a dedicated assumption-check pass for fitting `points ~ reports` as a linear regression (raw scale, outlier-removed, log-log, and feasible-GLS variants). That analysis independently confirms the finding here: a plain linear model does not satisfy its own residual assumptions on this data, which is exactly why this page uses Spearman rather than a fitted regression line.
-{% endhint %}
-
 ***
 
 ## Descriptive Statistics
@@ -217,41 +139,13 @@ The table below summarises central tendency, spread, and distributional shape fo
 | Shapiro-Wilk W     | 0.393      | 0.367        |
 | Shapiro-Wilk p     | < .001     | < .001       |
 
-The large gap between mean and median in both variables reflects the heavy right skew: a small number of high-volume hunters pull the mean substantially above the typical value. The single most extreme hunter (5,610 reports, 84,713 points) sets both column maxima.
-
 ***
 
-## Visualisations
+## Visualisation
 
 The script produces a side-by-side scatter plot with both a linear and a log–log axis.
 
-\*Suggested caption: "Linear panel (left) shows the raw cluster of hunters with Spearman ρ in the title; log–log panel (right) compresses the range so the full 81-hunter population is readable. The dashed line in both panels marks the median points-per-report ratio."\*
-
-**What to look for in the plots**
-
-| Panel       | Purpose                                                                                                                                                 |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Linear**  | Shows Spearman ρ in the title and makes the cluster of typical hunters visible. Outliers appear far to the right.                                       |
-| **Log–log** | Compresses the range so the full hunter population is readable. A straight line in log–log space implies a power-law relationship (points ∝ reports^k). |
-
-**Reference line — median points-per-report**
-
-Both panels include a dashed reference line through the origin at the **median points-per-report ratio**:
-
-```python
-ppr_median = (pair["points"] / pair["reports"].replace(0, pd.NA)).median()
-xs = [pair["reports"].min(), pair["reports"].max()]
-ax.plot(xs, [x * ppr_median for x in xs],
-        ls="--", lw=1, color="#C44E52",
-        label=f"median {ppr_median:.2f} pts/report")
-```
-
-With the current 81-hunter sample, the median points-per-report ratio is **17.06**.
-
-* Hunters **above** the line earn more points per report than the typical hunter — higher-severity or higher-quality findings.
-* Hunters **below** the line earn fewer points per report — higher volume at lower severity, or more informational/low-severity reports.
-
-This makes the quality-vs-volume split visible without fitting a model.
+<figure><img src=".gitbook/assets/reports_vs_points.png" alt=""><figcaption><p>Linear panel (left) shows the raw cluster of hunters with Spearman ρ in the title; log–log panel (right) compresses the range so the full 81-hunter population is readable.</p></figcaption></figure>
 
 ***
 
@@ -259,70 +153,28 @@ This makes the quality-vs-volume split visible without fitting a model.
 
 Spearman's rank correlation was computed for three variable pairs. The points–rank pair is discussed separately because it is a structural relationship, not a behavioural finding.
 
-| Variables         | n  | Spearman ρ | p-value  | Pearson r | Pearson p | Interpretation                |
-| ----------------- | -- | ---------- | -------- | --------- | --------- | ----------------------------- |
-| Reports vs Points | 81 | +0.875     | 1.33e-26 | +0.960    | 1.27e-45  | Very strong positive          |
-| Reports vs Rank   | 81 | −0.875     | 1.33e-26 | −0.478    | 6.34e-06  | Very strong negative          |
-| Points vs Rank    | 81 | −1.000     | \~0      | −0.502    | 1.79e-06  | Perfect negative (structural) |
+<table><thead><tr><th>Variables</th><th width="62">n</th><th width="113">Spearman ρ</th><th width="132">p-value</th><th>Interpretation</th></tr></thead><tbody><tr><td>Reports vs Points</td><td>81</td><td>+0.875</td><td>1.33e-26</td><td>Very strong positive</td></tr><tr><td>Reports vs Rank</td><td>81</td><td>−0.875</td><td>1.33e-26</td><td>Very strong negative</td></tr></tbody></table>
 
 {% tabs %}
 {% tab title="Reports vs. Points" %}
-A very strong positive monotonic correlation was found between accepted reports and total points earned (ρ = +0.875, p = 1.33e-26). Because p < α = 0.05, the **null hypothesis is rejected**. Hunters with more accepted reports consistently earned more points.
+A very strong positive monotonic correlation was found between accepted reports and total points earned. Because p < α = 0.05, we **reject the null hypothesis** and conclude that **hunters with more accepted reports consistently earn more points**.
 {% endtab %}
 
 {% tab title="Reports vs. Rank" %}
-The strong negative correlation between reports and rank (ρ = −0.875) is directionally consistent: on this platform a **lower rank number denotes a higher standing**, so more reports translates to a better (lower-numbered) rank. This pair mirrors the reports–points finding and adds no independent information. Note that Pearson r (−0.478) is far weaker than Spearman ρ here — rank is a heavily nonlinear (roughly reciprocal-shaped) function of the underlying points total, so a linear correlation understates the real relationship substantially more than it does for reports-vs-points.
-{% endtab %}
-
-{% tab title="Points vs. Rank (structural check)" %}
-The perfect rank correlation (ρ = −1.000) confirms that rank is mathematically derived from points — they carry identical ordering information in opposite directions. This result is expected and serves as a **sanity check**, not a finding. Note that Pearson r for this same pair is only −0.502: rank is a monotonic but distinctly nonlinear transform of points (leaderboard point gaps compress heavily at the top), which is exactly the scenario Spearman is built to detect correctly and Pearson is not. Rank is excluded from the primary analysis to avoid redundancy.
+The strong negative correlation between reports and rank remains consistent since **a** **lower rank number denotes a higher standing.** Hence, more reports translate to a better rank. This pair mirrors the reports–points finding and adds no independent information.
 {% endtab %}
 {% endtabs %}
 
-{% hint style="warning" %}
-**Ties.** `reports` has 5 tied values across the 81 hunters (5 hunters share a report count with at least one other hunter); `points` and `rank` have none. Spearman uses average ranks for ties, and 5 out of 81 is a small enough share that it has no meaningful effect on ρ here.
-{% endhint %}
+### Checking for outlier sensitivity
 
-### Sensitivity check: is the correlation driven by one outlier?
-
-The most extreme hunter (5,610 reports, 84,713 points — roughly 12× the sample mean on both variables) could plausibly be inflating the correlation. Because Spearman uses ranks rather than raw magnitudes, removing this single hunter is a direct way to test that:
+The most extreme hunter (5,610 reports, 84,713 points, username rabhi) could plausibly be inflating the correlation.
 
 | Sample                      | n  | Spearman ρ | p-value  |
 | --------------------------- | -- | ---------- | -------- |
 | Full sample                 | 81 | +0.875     | 1.33e-26 |
 | Most extreme hunter removed | 80 | +0.870     | 1.08e-25 |
 
-The coefficient barely moves (+0.875 → +0.870). This is the payoff of using rank correlation on this kind of data: the same outlier that would dominate a Pearson correlation or an OLS regression fit (see the cross-referenced regression assumption-check page) has almost no effect on Spearman ρ, because Spearman only cares that this hunter ranks highest on both variables, not by how much.
-
-***
-
-## CSV Export
-
-The script writes a summary CSV to `Outputs/hunter_points_reports.csv`, sorted by rank ascending.
-
-**Schema**
-
-| Column              | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `name`              | Hunter display name                            |
-| `reports`           | Total accepted reports                         |
-| `points`            | Total points earned                            |
-| `rank`              | Platform rank (lower = better)                 |
-| `points_per_report` | Derived: `points / reports`, rounded to 4 d.p. |
-
-```python
-out["points_per_report"] = (
-    out["points"] / out["reports"].replace(0, pd.NA)
-).round(4)
-out = out.sort_values("rank", na_position="last")
-out.to_csv(path, index=False, encoding="utf-8")
-```
-
-`points_per_report` is included so downstream consumers can independently verify the reference-line calculation from the scatter plot without re-running the script.
-
-{% hint style="warning" %}
-**Data-quality note.** One hunter's `name` field in the source `stats.json` (username `Xel`) contains a mis-decoded character, rendering as "Rapha�l Kevin Arrouas" in the exported CSV rather than the intended name. This is a pre-existing encoding issue in the scraped source data, not something introduced by this script. The `username` field for this hunter (`Xel`) is unaffected and is the more reliable identifier until the source `stats.json` is re-scraped or manually corrected.
-{% endhint %}
+The coefficient barely moves from 0.875 to 0.870.
 
 ***
 
@@ -351,25 +203,3 @@ The log–log scatter and the divergence between ρ and Pearson r both indicate 
 The confounds noted above (tenure, disclosure bias, severity mix) should be kept in mind when interpreting the direction and magnitude of this association.
 
 ***
-
-## Running the Script
-
-```bash
-# From the project root
-python Codes/reports_to_points.py
-```
-
-**Outputs produced**
-
-| File                                | Description                                       |
-| ----------------------------------- | ------------------------------------------------- |
-| `Outputs/reports_vs_points.png`     | Side-by-side linear and log–log scatter plot      |
-| `Outputs/hunter_points_reports.csv` | Per-hunter summary table with `points_per_report` |
-
-**Dependencies**
-
-```
-matplotlib
-pandas
-scipy
-```
