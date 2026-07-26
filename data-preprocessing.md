@@ -97,19 +97,42 @@ New reports with CWE:      32830
 
 {% tabs %}
 {% tab title="Input" %}
-The same `Codes/hunters/<hunter>/hacktivities.json` files — but this run **mutates them in place**. Every record is read and reclassified regardless of `status` (a legacy label needs fixing whether the report is new or closed), and the file is rewritten if anything changed.
+The same `Codes/hunters/<hunter>/hacktivities.json` files are used; however, this run **overwrites the files**. Every record is read and reclassified regardless of `status` (a legacy label needs fixing whether the report is new or closed), and the file is rewritten if anything changed.
 
 Labels are matched by a normalized key, not by literal string match, so punctuation and casing drift in the export don't cause misses:
 
-```python
-_TRAILING_CWE = re.compile(r"\s*\(CWE-[\w\d]+\)\s*$", re.IGNORECASE)
-_NON_ALNUM    = re.compile(r"[^a-z0-9]+")
-
-def normalize_key(label: str) -> str:
-    return _NON_ALNUM.sub(" ", strip_cwe_suffix(label).lower()).strip()
+```json
+  {
+    "date": "2022-10-17",
+    "date_raw": "2022-10-17",
+    "bug_name": "Insecure Direct Object Reference (IDOR)",
+    "cwe": "CWE-639",
+    "bug_type_raw": "Insecure Direct Object Reference (IDOR) (CWE-639)",
+    "status": "New"
+  },
 ```
 
-`OWASP-A7-XSS`, `owasp a7 xss`, and `OWASP-A7-XSS (CWE-79)` all reduce to the same key, `owasp a7 xss`.
+```json
+  {
+    "date": "2019-05-14",
+    "date_raw": "2019-05-14",
+    "bug_name": "OWASP-2013-A8-Cross-Site Request Forgery (CSRF)",
+    "cwe": null,
+    "bug_type_raw": "OWASP-2013-A8-Cross-Site Request Forgery (CSRF)",
+    "status": "Resolved"
+  },
+```
+
+```json
+  {
+    "date": "2022-10-13",
+    "date_raw": "2022-10-13",
+    "bug_name": "Not Applicable (CWE-NULL)",
+    "cwe": null,
+    "bug_type_raw": "Not Applicable (CWE-NULL)",
+    "status": "Resolved"
+  },
+```
 {% endtab %}
 
 {% tab title="Transform" %}
@@ -164,7 +187,7 @@ The source JSON files are rewritten on disk, and a run summary is captured to `O
 ```
 
 {% hint style="info" %}
-These action counts are taken over **every** record regardless of status, which is why they don't match the `New`-only totals elsewhere on this page — `normalize_hacktivity.py` doesn't filter by status, since a legacy label needs fixing no matter what state the report is in.
+All statuses are counted and transformed regardless of status.
 {% endhint %}
 {% endtab %}
 {% endtabs %}
@@ -173,7 +196,7 @@ These action counts are taken over **every** record regardless of status, which 
 
 {% tabs %}
 {% tab title="Input" %}
-`Codes/hunters/<hunter>/hacktivities.json`, read after `normalize_hacktivity.py` has already run — so the sub-type tree reflects canonical labels wherever normalization succeeded. Every `status` is included, not just `New`.
+In order to test the assumption in one of the statistical tests (Shannon Entropy) that grouping vulnerability reports by CWE rather than by bug\_name does not discard a meaningful amount of technique-level information.
 {% endtab %}
 
 {% tab title="Transform" %}
@@ -185,7 +208,6 @@ for hunter_name, reports in load_all_hacktivities(hunters_dir):
         bug_name = report.get("bug_name")
 
         if not cwe or not bug_name:
-            # Missing field -- skip but don't crash the whole run
             continue
 
         cwe_to_bugnames[cwe].add(bug_name)
@@ -207,6 +229,10 @@ A tree printed to stdout, and the same structure serialized to `Outputs/cwe_clas
 ```
 
 Current run: 81 hunters scanned, 83,675 records (all statuses), 90 distinct CWE keys.
+
+* 86 out of 90 CWEs map to one-to-one with a single bug\_name
+* CWE-16 maps to 3 sub-types
+* CWE 79 maps to 5 sub-types
 {% endtab %}
 {% endtabs %}
 
@@ -230,7 +256,7 @@ Each hunter's profile JSON is reduced to exactly these seven fields, with missin
 {% tab title="Output" %}
 `Outputs/hunter_stats.csv`, header + one row per hunter (81 rows currently):
 
-```
+```csv
 username,joined,impact,reports,points,rank,country
 0xd0m7,2019,19.38,180,3233,82,ES
 0xsnpaii,2023,13.57,436,5448,45,NG
@@ -283,47 +309,41 @@ drak3hft7,1211
 
 ### Legacy → Canonical Mapping
 
-Each legacy label is mapped to the canonical name and CWE that already describes the same weakness elsewhere in the dataset, so OWASP 2013/2017 phrasing and the modern label collapse into one identifier instead of being counted as separate outcomes. Two targets in this table — `CWE-16` and `CWE-1104` (marked ‡) — are worth a specific note: both were chosen because this dataset was already actively using them under other more specific labels before any legacy-label normalization ran, so consolidating into them extends an existing identifier rather than inventing a new one. One mapping, `OWASP-A1-Injection` → `CWE-77`, is separately flagged as **inferred** (marked †) rather than a direct rename, since that legacy label names an entire category of injection without stating which sub-type actually occurred.
+Each legacy label is mapped to the canonical name and CWE that already describes the same weakness elsewhere in the dataset, so OWASP 2013/2017 phrasing and the modern label collapse into one identifier instead of being counted as separate outcomes.
 
 {% tabs %}
 {% tab title="Part 1 of 2" %}
-| Legacy label(s)                                                                                                                            | Canonical name                          | CWE                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | --------------------- |
-| `OWASP-A7-XSS`, `OWASP-A7-Cross-Site Scripting (XSS)`, `OWASP-2013-A3-XSS`, `OWASP-2013-A3-Cross-Site Scripting (XSS)`                     | Cross-site Scripting (XSS) - Generic    | `CWE-79`              |
-| `OWASP-A6-Security Misconfiguration`, `OWASP-2013-A5`, `OWASP-2013-A5-Security Misconfiguration`                                           | Server Misconfiguration                 | `CWE-16` <sup>‡</sup> |
-| `OWASP-A1-Injection`, `OWASP-2013-A1-Injection` <sup>†</sup>                                                                               | Command Injection - Generic             | `CWE-77`              |
-| `OWASP-A2-Broken Authentication`, `OWASP-2013-A2-Broken Authentication and Session Management`, `OWASP-2013-A2-Broken Auth & Session Mgmt` | Improper Authentication - Generic       | `CWE-287`             |
-| `OWASP-A5-Broken Access Control`, `OWASP-2013-A7-Missing Function Level Access Control`                                                    | Improper Access Control - Generic       | `CWE-284`             |
-| `OWASP-2013-A4-Insecure Direct Object References`                                                                                          | Insecure Direct Object Reference (IDOR) | `CWE-639`             |
+| Legacy label(s)                                                                                                                            | Canonical name                          | CWE       |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | --------- |
+| `OWASP-A7-XSS`, `OWASP-A7-Cross-Site Scripting (XSS)`, `OWASP-2013-A3-XSS`, `OWASP-2013-A3-Cross-Site Scripting (XSS)`                     | Cross-site Scripting (XSS) - Generic    | `CWE-79`  |
+| `OWASP-A6-Security Misconfiguration`, `OWASP-2013-A5`, `OWASP-2013-A5-Security Misconfiguration`                                           | Server Misconfiguration                 | `CWE-16`  |
+| `OWASP-A1-Injection`, `OWASP-2013-A1-Injection`                                                                                            | Command Injection - Generic             | `CWE-77`  |
+| `OWASP-A2-Broken Authentication`, `OWASP-2013-A2-Broken Authentication and Session Management`, `OWASP-2013-A2-Broken Auth & Session Mgmt` | Improper Authentication - Generic       | `CWE-287` |
+| `OWASP-A5-Broken Access Control`, `OWASP-2013-A7-Missing Function Level Access Control`                                                    | Improper Access Control - Generic       | `CWE-284` |
+| `OWASP-2013-A4-Insecure Direct Object References`                                                                                          | Insecure Direct Object Reference (IDOR) | `CWE-639` |
 {% endtab %}
 
 {% tab title="Part 2 of 2" %}
-| Legacy label(s)                                                                                                                                                                                                                                  | Canonical name                          | CWE                     |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ----------------------- |
-| `OWASP-2013-A8-CSRF`, `OWASP-2013-A8-Cross-Site Request Forgery (CSRF)`                                                                                                                                                                          | Cross-Site Request Forgery (CSRF)       | `CWE-352`               |
-| `OWASP-A3-Sensitive Data Exposure`, `OWASP-2013-A6`, `OWASP-2013-A6-Sensitive Data Exposure`                                                                                                                                                     | Information Disclosure                  | `CWE-200`               |
-| `OWASP-2013-A10-Unvalidated Redirects and Forwards`                                                                                                                                                                                              | Open Redirect                           | `CWE-601`               |
-| `OWASP-A4-XXE`, `OWASP-A4-XML External Entities (XXE)`                                                                                                                                                                                           | XML External Entity (XXE)               | `CWE-611`               |
-| `OWASP-A9`, `OWASP-A9-Using Components with Known Vulnerabilities`, `OWASP-2013-A9`, `OWASP-2013-A9-Using Components with Known Vulnerabilities`, `Dependency on Vulnerable Third-Party Component`, `Use of Unmaintained Third Party Components` | Use of Vulnerable Third-Party Component | `CWE-1104` <sup>‡</sup> |
-| `OWASP-A10-Insufficient Logging&Monitoring`, `OWASP-A10-Insufficient Logging & Monitoring`                                                                                                                                                       | Insufficient Logging                    | `CWE-778`               |
+| Legacy label(s)                                                                                                                                                                                                                                  | Canonical name                          | CWE         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- | ----------- |
+| `OWASP-2013-A8-CSRF`, `OWASP-2013-A8-Cross-Site Request Forgery (CSRF)`                                                                                                                                                                          | Cross-Site Request Forgery (CSRF)       | `CWE-352`   |
+| `OWASP-A3-Sensitive Data Exposure`, `OWASP-2013-A6`, `OWASP-2013-A6-Sensitive Data Exposure`                                                                                                                                                     | Information Disclosure                  | `CWE-200`   |
+| `OWASP-2013-A10-Unvalidated Redirects and Forwards`                                                                                                                                                                                              | Open Redirect                           | `CWE-601`   |
+| `OWASP-A4-XXE`, `OWASP-A4-XML External Entities (XXE)`                                                                                                                                                                                           | XML External Entity (XXE)               | `CWE-611`   |
+| `OWASP-A9`, `OWASP-A9-Using Components with Known Vulnerabilities`, `OWASP-2013-A9`, `OWASP-2013-A9-Using Components with Known Vulnerabilities`, `Dependency on Vulnerable Third-Party Component`, `Use of Unmaintained Third Party Components` | Use of Vulnerable Third-Party Component | `CWE-1104`  |
+| `OWASP-A10-Insufficient Logging&Monitoring`, `OWASP-A10-Insufficient Logging & Monitoring`                                                                                                                                                       | Insufficient Logging                    | `CWE-778`   |
 {% endtab %}
 {% endtabs %}
 
 {% hint style="warning" %}
-<sup>†</sup> **Inferred mapping.** `OWASP-A1-Injection` is a _category_ label — it does not state which injection sub-type occurred. It is mapped to `Command Injection - Generic (CWE-77)` as an inferred root cause and tagged `inferred` in the normalization report so the assumption stays visible downstream. 140 records (all statuses) carry this inferred label; 54 of those are `status == "New"`. Confidence in this specific mapping is **low**.
-
-<sup>‡</sup> **Consolidated into an already-active CWE.** `CWE-16` and `CWE-1104` were already in use in this dataset (443 and 1 baseline records respectively) before any legacy labels were merged into them — see the rationale above. Every remaining mapping in the table is a plain one-to-one rename and is **high** confidence.
+**Inferred mapping.** `OWASP-A1-Injection` is a _category_ label and does not state which injection subtype. As a result, it is mapped to `Command Injection - Generic (CWE-77)` as an inferred label.
 {% endhint %}
 
 ### Deleted Records
 
-Records flagged as not applicable carry no exploitable finding and no usable CWE. They are removed from the JSON rather than retained with a null, so downstream code never has to special-case an empty category.
+Records flagged as `Not Applicable (CWE-NULL)`  and `None Applicable` carry no exploitable finding and no usable CWE and are removed.
 
-| Deleted label               | New-status records removed |
-| --------------------------- | -------------------------: |
-| `Not Applicable (CWE-NULL)` |                        110 |
-| `None Applicable`           |                         45 |
-| **Total**                   |                    **155** |
+<table><thead><tr><th width="254">Deleted label</th><th width="467" align="right">Count</th></tr></thead><tbody><tr><td><code>Not Applicable (CWE-NULL)</code></td><td align="right">110</td></tr><tr><td><code>None Applicable</code></td><td align="right">45</td></tr><tr><td><strong>Total</strong></td><td align="right"><strong>155</strong></td></tr></tbody></table>
 
 ### After Normalization
 
@@ -335,10 +355,9 @@ Records flagged as not applicable carry no exploitable finding and no usable CWE
 | Distinct `bug_name` labels  |     98 |
 | Distinct CWE identifiers    |     90 |
 
-* `bug_name` fell by exactly 155 — the deletions above, nothing else.
 * `cwe` rose by 819 (32,830 → 33,649). The 974-record gap resolves as `155 deleted + 819 relabelled = 974`.
 * Distinct labels fell from 117 to 98: 23 legacy labels went to zero, 4 canonical labels appeared for the first time (`Server Misconfiguration`, `Use of Vulnerable Third-Party Component`, `XML External Entity (XXE)`, `Insufficient Logging`).
-* Distinct CWE count is unchanged at 90, but membership shifted: `CWE-1395` (6 pre-existing records) was absorbed into `CWE-1104`, and `CWE-778` entered the set for the first time.
+* Distinct CWE count is unchanged at 90.
 
 ***
 
@@ -583,28 +602,6 @@ Per-hunter profile metadata (`hunter_stats.csv`, from `parse_stats.py`) reports 
 | `status == "New"` reports after normalization                              |    33,649 |
 | **Discrepancy**                                                            | **3,013** |
 
-Two candidate explanations, neither confirmed:
-
-1. **Definitional.** The profile `reports` counter may include submissions in states this pipeline deliberately excludes (duplicates, informative, not-applicable, spam), or reports on programs whose hacktivity is not publicly disclosed.
-2. **Pagination.** The scraper may have truncated hacktivity pulls for high-volume hunters, in which case the gap is real data loss, not uniformly distributed.
-
-These predict different signatures: under (1) the shortfall should scale roughly with each hunter's total; under (2) it should cluster in a small number of high-volume hunters. A per-hunter delta table sorted by absolute shortfall — not yet built — would discriminate between the two.
-
-{% hint style="warning" %}
-Until this is resolved, treat the 81-hunter corpus as **representative but not exhaustive**. Any per-hunter rate metric (reports per year active, impact per report) inherits this uncertainty and should carry the caveat.
-{% endhint %}
-
-***
-
-## Note on `cwe_class_map.json`
-
-`cwe_class_map.json`, produced by `CWEchecker.py`, maps each CWE to the set of `bug_name` sub-types observed under it. Two properties matter when reading it:
-
-* **It counts all statuses**, not just `New`. Its total of 83,675 records is therefore not comparable to the 33,649 figure used throughout this page.
-* **It reflects the current, post-normalization state of the hunter files** — this run was executed after `normalize_hacktivity.py`, so the map already shows `CWE-1104` (not `CWE-1395`) and `CWE-778`.
-
-***
-
 ## Summary
 
 |                      | Before normalization | After normalization |
@@ -616,4 +613,3 @@ Until this is resolved, treat the 81-hunter corpus as **representative but not e
 | Distinct labels      |                  117 |                  98 |
 | Distinct CWEs        |                   90 |                  90 |
 
-The dataset is single-vocabulary and fully CWE-labelled after this run, with one open caveat: the 3,013-report hunter discrepancy above remains unexplained.
