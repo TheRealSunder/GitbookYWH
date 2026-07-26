@@ -67,21 +67,6 @@ def shannon_entropy(counts: Counter) -> float:
 * `bug_names` falling under the same CWE, such as "Reflected XSS", "Stored XSS" and "DOM XSS" which are all under CWE-79 (Cross-site Scripting), having three distinct values would inflate a hunter's entropy score even when the majority of the hunter's reports are concentrated in a single vulnerability class.
 * `cwe` provides a fixed, program-independent category set, so entropy computed over it measures breadth across vulnerability classes rather than breadth across report labels which is what specialization refers to in the Definitions above.
 
-{% hint style="info" %}
-- **Low entropy (close to 0 bits):** The hunter concentrates almost all reports in one or two categories. Their portfolio is narrow and specialized.
-- **High entropy:** Reports are spread across many categories with roughly equal frequency. The hunter is broadly diversified.
-{% endhint %}
-
-Before conducting statistical tests, an assumption check was made to ensure that the data is fit for testing.
-
-As seen in the histogram below, the entropy bits do not exhibit a normal distribution and are heavily skewed to the left.
-
-A shap
-
-<figure><img src=".gitbook/assets/entropy_bits_histogram.png" alt=""><figcaption></figcaption></figure>
-
-
-
 ***
 
 ## Statistical Methods
@@ -95,13 +80,6 @@ For each hunter, Shannon entropy (in bits) is calculated from the distribution o
 Spearman's rank correlation coefficient is used to assess the monotonic relationship between Shannon entropy and hunter rank. Spearman's correlation is selected because hunter rank is an ordinal variable and exploratory data analysis indicated that the variables are non-normally distributed and contain outliers.
 
 ***
-
-## Variables
-
-| Role             | Variable       | Description                                                  |
-| ---------------- | -------------- | ------------------------------------------------------------ |
-| Independent (IV) | `rank`         | The hunter's position on the leaderboard (lower = better)    |
-| Dependent (DV)   | `entropy_bits` | Shannon entropy of the hunter's report distribution, in bits |
 
 ### What the entropy value means for each hunter
 
@@ -199,4 +177,4 @@ rho, pvalue = spearmanr(df["rank"], df["entropy_bits"])
 
 The correlation coefficient of $$\rho = 0.0147$$ is negligible in magnitude and close to zero.&#x20;
 
-The p-value of 0.8966 > indicates that we fail to reject $$H_o$$.
+The p-value of 0.8966 > $$\alpha = 0.05$$ indicates that we fail to reject $$H_o$$.
