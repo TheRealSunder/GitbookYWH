@@ -388,6 +388,250 @@ if __name__ == "__main__":
 
 </details>
 
+<details>
+
+<summary>hunter_probe.py — verify one hunter's hacktivity scrape completed in full</summary>
+
+Rebuilds the fetch and retry logic from `parse_hacktivity.py` for a single hunter, but keeps the `pagination.nb_results` field the original parser discarded. Compares the collected row count against that declared total to gate on scrape completeness, then reports the New-status count against an optional `--official` figure for manual reconciliation.
+
+```python
+#!/usr/bin/env python3
+"""
+hunter_probe.py
+
+Check whether parse_hacktivity.py actually scraped ONE hunter's feed in full.
+
+Built on the endpoint and retry logic from parse_hacktivity.py, with one
+difference that matters: the pagination object is PRESERVED. nb_results is the
+only ground truth available about whether the scrape was complete, and the
+original parser dropped it at write time.
+
+  GATE  collected rows == pagination.nb_results ?
+        A fail means the scrape was truncated -- fix the scraper.
+
+  COUNT  new-rows vs total rows, and (if --official is given) the gap against
+        the hunter's officially stated report count, for manual review.
+
+Usage:
+    python hunter_probe.py Geluchat
+    python hunter_probe.py Geluchat --official 358
+    python hunter_probe.py Geluchat --refetch --per-page 100
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import requests
+
+API = "https://api.yeswehack.com/v2/hacktivity/{username}"
+
+
+# ------------------------------------------------------------------ fetch
+
+def fetch_pages(username: str, per_page: int = 10, delay: float = 2.0) -> list[dict]:
+    """Walk every page, returning the raw page blobs including pagination."""
+    session = requests.Session()
+    pages: list[dict] = []
+    page = 1
+    first_total: int | None = None
+
+    while True:
+        url = f"{API.format(username=username)}?page={page}&resultsPerPage={per_page}"
+
+        attempt = 0
+        while True:
+            r = session.get(url, timeout=30)
+            if r.status_code != 429:
+                r.raise_for_status()
+                break
+            wait = max(delay * (2 ** attempt), 1.0)
+            retry_after = r.headers.get("Retry-After")
+            if retry_after:
+                try:
+                    wait = max(wait, float(retry_after))
+                except ValueError:
+                    pass
+            print(f"    rate limited on page {page}; waiting {wait:.1f}s")
+            time.sleep(wait)
+            attempt += 1
+
+        blob = r.json()
+        pages.append(blob)
+
+        pg = blob["pagination"]
+        total = pg.get("nb_results")
+        if first_total is None:
+            first_total = total
+        elif total != first_total:
+            # Someone submitted a report mid-scrape. Surfaced, not absorbed.
+            print(f"    ! nb_results drifted {first_total} -> {total} at page {page}",
+                  file=sys.stderr)
+
+        print(f"    page {pg['page']}/{pg['nb_pages']} "
+              f"({len(blob.get('items', []))} items)")
+
+        if page >= pg["nb_pages"]:
+            break
+        page += 1
+        time.sleep(delay)
+
+    return pages
+
+
+# ------------------------------------------------------------------ model
+
+@dataclass
+class Row:
+    date: str
+    status: str          # lowercase, as the API emits it
+    slug: str
+    name: str
+    cwe: str | None
+
+
+@dataclass
+class Feed:
+    handle: str
+    rows: list[Row] = field(default_factory=list)   # CHRONOLOGICAL, oldest first
+    declared: int | None = None
+    nb_pages: int | None = None
+    per_page: int | None = None
+
+
+def split_cwe(raw_name: str) -> tuple[str, str | None]:
+    """CWE is embedded in the display name as a trailing '(CWE-nnn)'.
+    Absence is meaningful, so return None rather than an empty string."""
+    if raw_name.endswith(")") and "(CWE-" in raw_name:
+        head, _, tail = raw_name.rpartition("(CWE-")
+        digits = "".join(c for c in tail if c.isdigit())
+        if digits:
+            return head.strip(), f"CWE-{digits}"
+    return raw_name, None
+
+
+def build_feed(handle: str, pages: list[dict]) -> Feed:
+    feed = Feed(handle)
+    for p in pages:
+        pg = p.get("pagination") or {}
+        feed.declared = pg.get("nb_results", feed.declared)
+        feed.nb_pages = pg.get("nb_pages", feed.nb_pages)
+        feed.per_page = pg.get("results_per_page", feed.per_page)
+        for item in p.get("items", []):
+            bt = item.get("bug_type") or {}
+            name, cwe = split_cwe(bt.get("name") or "")
+            feed.rows.append(Row(
+                date=(item.get("date") or "")[:10],
+                status=(item.get("status") or "").strip().lower(),
+                slug=bt.get("slug") or "<no-slug>",
+                name=name or "<no-name>",
+                cwe=cwe,
+            ))
+
+    # API serves newest-first. Reverse rather than sort by date: dates are
+    # day-granular and tie constantly, so sorting would scramble whatever
+    # secondary ordering the API applies within a date.
+    feed.rows.reverse()
+    return feed
+
+
+# --------------------------------------------------------------- analysis
+
+def analyse(feed: Feed, official: int | None) -> bool:
+    rows = feed.rows
+    n = len(rows)
+    print("=" * 72)
+    print(f"HUNTER: {feed.handle}")
+    print("=" * 72)
+
+    # ---- GATE (H0) ------------------------------------------------------
+    print("\n[GATE] SCRAPE COMPLETENESS")
+    print(f"    collected     : {n}")
+    print(f"    declared      : {feed.declared}")
+    print(f"    pages x size  : {feed.nb_pages} x {feed.per_page}")
+    if feed.declared is None:
+        print("    verdict       : UNKNOWN (no pagination metadata)")
+        gate = False
+    elif n == feed.declared:
+        print("    verdict       : PASS")
+        gate = True
+        # A server-side cap on nb_results would look exactly like a complete
+        # scrape. Round numbers are the tell; worth checking on high-volume
+        # hunters before trusting any gap computed against them.
+        if feed.declared in (100, 200, 250, 500, 1000, 2000, 5000):
+            print(f"    ! declared is a suspiciously round {feed.declared} "
+                  f"-- possible server-side cap, not a true total")
+    else:
+        print(f"    verdict       : FAIL -- {feed.declared - n} rows short")
+        print("    Fix the scraper before reading anything below.")
+        gate = False
+
+    if not n:
+        return gate
+
+    # ---- counts ---------------------------------------------------------
+    n_new = sum(1 for r in rows if r.status == "new")
+    print("\n[1] COUNT")
+    print(f"    new-rows      : {n_new}    <- the estimator")
+    print(f"    total rows    : {n}")
+    if n_new:
+        print(f"    rows per new  : {n / n_new:.2f}   <- events per report")
+    if official:
+        gap = official - n_new
+        print(f"    official      : {official}")
+        print(f"    gap           : {gap} ({gap / official:.1%})")
+
+    print()
+    return gate
+
+
+# -------------------------------------------------------------------- cli
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("handle")
+    ap.add_argument("--official", type=int, default=None,
+                    help="official report count from the hunter's stats")
+    ap.add_argument("--cache", type=Path, default=Path("feeds"))
+    ap.add_argument("--refetch", action="store_true")
+    ap.add_argument("--per-page", type=int, default=10,
+                    help="try 100; verify pagination.results_per_page honours it")
+    ap.add_argument("--delay", type=float, default=2.0)
+    args = ap.parse_args()
+
+    args.cache.mkdir(parents=True, exist_ok=True)
+    path = args.cache / f"{args.handle}.json"
+
+    if path.exists() and not args.refetch:
+        print(f"using cached {path}")
+        pages = json.loads(path.read_text(encoding="utf-8"))
+    else:
+        print(f"fetching {args.handle} ...")
+        try:
+            pages = fetch_pages(args.handle, args.per_page, args.delay)
+        except requests.RequestException as exc:
+            print(f"fetch failed: {exc}", file=sys.stderr)
+            return 1
+        # Cache RAW pages -- pagination included. This is the fix.
+        path.write_text(json.dumps(pages), encoding="utf-8")
+        print(f"cached -> {path}")
+
+    feed = build_feed(args.handle, pages)
+    return 0 if analyse(feed, args.official) else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+```
+
+</details>
+
 ## Preprocessing
 
 <details>
@@ -1710,6 +1954,369 @@ if __name__ == "__main__":
 
 </details>
 
+<details>
+
+<summary>assumption_checks.py — regression diagnostics for points ~ reports</summary>
+
+Fits an OLS regression of points on reports — or, with `--fgls`, a feasible-GLS-weighted log-log fit — purely to test the assumptions Pearson/OLS would require: linearity, independence, Breusch-Pagan homoscedasticity, Shapiro-Wilk/Jarque-Bera normality, and Cook's-distance outliers. The fit itself is never the reported result; it exists to justify reporting Spearman's rho instead.
+
+```python
+"""
+Simple linear regression assumption checks for points ~ reports.
+
+Model under test: points = b0 + b1 * reports + e
+
+Inputs:
+    - hunter_stats.csv (one directory up from this script)
+
+Outputs (written to ./outputs relative to this script):
+    - scatter_with_fit.png
+    - residuals_vs_fitted.png
+    - qq_plot_residuals.png
+    - residuals_histogram.png
+    - scale_location.png
+    - cooks_distance.png
+    - assumption_check_results.txt
+
+Usage:
+    python assumption_checks.py [--csv PATH] [--out-dir PATH] [--exclude-username NAME ...] [--log-transform] [--fgls]
+"""
+
+import argparse
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy import stats
+from statsmodels.stats.diagnostic import het_breuschpagan
+from statsmodels.stats.outliers_influence import OLSInfluence
+from statsmodels.stats.stattools import durbin_watson
+
+
+def load_data(csv_path: Path, exclude_usernames: list[str] | None = None) -> pd.DataFrame:
+    if not csv_path.exists():
+        raise SystemExit(f"Missing input CSV: {csv_path}")
+    df = pd.read_csv(csv_path)
+    df.columns = [c.strip() for c in df.columns]
+    df["reports"] = pd.to_numeric(df["reports"], errors="coerce")
+    df["points"] = pd.to_numeric(df["points"], errors="coerce")
+    before = len(df)
+    df = df.dropna(subset=["reports", "points"])
+    dropped = before - len(df)
+    print(f"[info] loaded {before} rows, dropped {dropped} with missing reports/points, {len(df)} remain")
+
+    if exclude_usernames:
+        before_exclude = len(df)
+        df = df[~df["username"].isin(exclude_usernames)]
+        print(f"[info] excluded {before_exclude - len(df)} row(s) matching {exclude_usernames}, {len(df)} remain")
+
+    return df.reset_index(drop=True)
+
+
+def fit_model(df: pd.DataFrame, log_transform: bool = False, xcol: str = "reports"):
+    if log_transform:
+        predictor = np.log(df[xcol].astype(float))
+    else:
+        predictor = df[xcol].astype(float)
+    x = sm.add_constant(predictor)
+    y = np.log(df["points"].astype(float)) if log_transform else df["points"].astype(float)
+    model = sm.OLS(y, x).fit()
+    return model, x, y
+
+
+def plot_scatter_with_fit(df: pd.DataFrame, model, out_dir: Path, log_transform: bool = False) -> None:
+    x_vals = np.log(df["reports"].astype(float)) if log_transform else df["reports"].astype(float)
+    y_vals = np.log(df["points"].astype(float)) if log_transform else df["points"].astype(float)
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(x_vals, y_vals, color="#4C72B0", alpha=0.6, edgecolor="white")
+
+    x_line = np.linspace(x_vals.min(), x_vals.max(), 200)
+    y_line = model.params["const"] + model.params["reports"] * x_line
+    ax.plot(x_line, y_line, color="#C44E52", linewidth=2, label="OLS fit")
+
+    if log_transform:
+        ax.set_title("log(points) vs log(reports) with fitted OLS line")
+        ax.set_xlabel("log(reports)")
+        ax.set_ylabel("log(points)")
+    else:
+        ax.set_title("Points vs reports with fitted OLS line")
+        ax.set_xlabel("Reports")
+        ax.set_ylabel("Points")
+    ax.legend()
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "scatter_with_fit.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_residuals_vs_fitted(model, out_dir: Path, log_transform: bool = False) -> None:
+    fitted = model.fittedvalues
+    resid = model.resid
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(fitted, resid, color="#55A868", alpha=0.6, edgecolor="white")
+    ax.axhline(0, color="#C44E52", linewidth=1.5, linestyle="--")
+    ax.set_title("Residuals vs fitted values")
+    ax.set_xlabel("Fitted log(points)" if log_transform else "Fitted points")
+    ax.set_ylabel("Residual")
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "residuals_vs_fitted.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_scale_location(model, out_dir: Path, log_transform: bool = False) -> None:
+    fitted = model.fittedvalues
+    standardized_resid = OLSInfluence(model).resid_studentized_internal
+    sqrt_abs_resid = np.sqrt(np.abs(standardized_resid))
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(fitted, sqrt_abs_resid, color="#8172B2", alpha=0.6, edgecolor="white")
+    ax.set_title("Scale-location plot")
+    ax.set_xlabel("Fitted log(points)" if log_transform else "Fitted points")
+    ax.set_ylabel("sqrt(|standardized residual|)")
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "scale_location.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_qq(model, out_dir: Path) -> None:
+    fig = sm.qqplot(model.resid, line="s")
+    fig.set_size_inches(9, 6)
+    fig.axes[0].set_title("Normal Q-Q plot of residuals")
+    fig.tight_layout()
+    fig.savefig(out_dir / "qq_plot_residuals.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_residual_histogram(model, out_dir: Path) -> None:
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.hist(model.resid, bins=30, color="#4C72B0", edgecolor="white")
+    ax.set_title("Histogram of residuals")
+    ax.set_xlabel("Residual")
+    ax.set_ylabel("Frequency")
+    ax.grid(axis="y", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "residuals_histogram.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_cooks_distance(model, df: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
+    influence = OLSInfluence(model)
+    cooks_d, _ = influence.cooks_distance
+    n = len(df)
+    threshold = 4 / n
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.stem(range(n), cooks_d, markerfmt=",")
+    ax.axhline(threshold, color="#C44E52", linewidth=1.5, linestyle="--", label=f"4/n threshold ({threshold:.4f})")
+    ax.set_title("Cook's distance by observation")
+    ax.set_xlabel("Observation index")
+    ax.set_ylabel("Cook's distance")
+    ax.legend()
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "cooks_distance.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+    flagged = df.assign(cooks_d=cooks_d).loc[lambda d: d["cooks_d"] > threshold]
+    return flagged.sort_values("cooks_d", ascending=False)
+
+
+def fit_fgls(logx: pd.Series, logy: pd.Series):
+    """Feasible GLS: estimate the variance function via an auxiliary regression of
+    log(resid^2) on the predictor, then refit with weights = 1 / predicted variance.
+    """
+    x = sm.add_constant(logx)
+    ols = sm.OLS(logy, x).fit()
+    aux_target = np.log(ols.resid**2 + 1e-8)
+    aux_model = sm.OLS(aux_target, x).fit()
+    weights = 1.0 / np.exp(aux_model.fittedvalues)
+    wls = sm.WLS(logy, x, weights=weights).fit()
+    return wls, x, aux_model
+
+
+def run_diagnostics(model, x, df: pd.DataFrame, out_dir: Path, log_transform: bool = False) -> list[str]:
+    lines: list[str] = []
+
+    # model.wresid is the weighted/standardized residual for WLS fits and is
+    # identical to model.resid for an unweighted OLS fit, so the same diagnostics
+    # below are valid for both fit_model() and fit_fgls() results.
+    resid = model.wresid
+
+    # Linearity: correlation between the two modeled variables (log-transformed if
+    # requested), and RESET-style check using the sign/magnitude of the
+    # squared-fitted-value coefficient is skipped here in favor of visual inspection
+    # (see scatter_with_fit.png) plus Pearson r.
+    if log_transform:
+        lin_x = np.log(df["reports"].astype(float))
+        lin_y = np.log(df["points"].astype(float))
+        lin_label = "log(reports), log(points)"
+    else:
+        lin_x = df["reports"]
+        lin_y = df["points"]
+        lin_label = "reports, points"
+    pearson_r, pearson_p = stats.pearsonr(lin_x, lin_y)
+    lines.append("[linearity]")
+    lines.append(f"Pearson r ({lin_label})   = {pearson_r:.4f}")
+    lines.append(f"Pearson p-value               = {pearson_p:.6g}")
+    lines.append("Visual check: see scatter_with_fit.png for linear-vs-curved pattern.")
+    lines.append("")
+
+    # Independence of errors: Durbin-Watson
+    dw = durbin_watson(resid)
+    lines.append("[independence of errors]")
+    lines.append(f"Durbin-Watson statistic        = {dw:.4f}")
+    lines.append("Rule of thumb: values near 2 indicate no autocorrelation; <1 or >3 flag a problem.")
+    lines.append("Caveat: rows have no natural time/sequence order, so this checks ordering-as-loaded, not a true time series.")
+    lines.append("")
+
+    # Homoscedasticity: Breusch-Pagan
+    bp_stat, bp_p, bp_f, bp_f_p = het_breuschpagan(resid, x)
+    lines.append("[homoscedasticity]")
+    lines.append(f"Breusch-Pagan LM statistic     = {bp_stat:.4f}")
+    lines.append(f"Breusch-Pagan LM p-value       = {bp_p:.6g}")
+    lines.append(f"Breusch-Pagan F statistic      = {bp_f:.4f}")
+    lines.append(f"Breusch-Pagan F p-value        = {bp_f_p:.6g}")
+    lines.append("Null hypothesis: residual variance is constant. p < .05 rejects homoscedasticity.")
+    lines.append("Visual check: see residuals_vs_fitted.png and scale_location.png for funnel shapes.")
+    lines.append("")
+
+    # Normality of residuals: Shapiro-Wilk and Jarque-Bera
+    shapiro_stat, shapiro_p = stats.shapiro(resid)
+    jb_stat, jb_p, skew, kurtosis = sm.stats.jarque_bera(resid)
+    lines.append("[normality of residuals]")
+    lines.append(f"Shapiro-Wilk statistic         = {shapiro_stat:.4f}")
+    lines.append(f"Shapiro-Wilk p-value           = {shapiro_p:.6g}")
+    lines.append(f"Jarque-Bera statistic          = {jb_stat:.4f}")
+    lines.append(f"Jarque-Bera p-value            = {jb_p:.6g}")
+    lines.append(f"Residual skew                  = {skew:.4f}")
+    lines.append(f"Residual kurtosis               = {kurtosis:.4f}")
+    lines.append("Null hypothesis: residuals are normally distributed. p < .05 rejects normality.")
+    lines.append("Visual check: see qq_plot_residuals.png and residuals_histogram.png.")
+    lines.append("")
+
+    # Outliers / influential points: Cook's distance
+    flagged = plot_cooks_distance(model, df, out_dir=out_dir)
+    lines.append("[influential observations]")
+    lines.append(f"Observations flagged above 4/n Cook's distance threshold: {len(flagged)} of {len(df)}")
+    if not flagged.empty:
+        cols = [c for c in ("username", "reports", "points", "cooks_d") if c in flagged.columns]
+        lines.append(flagged[cols].head(15).to_string(index=False))
+    lines.append("")
+
+    # Heteroscedasticity-robust standard errors: does HC3 change the conclusions?
+    robust = model.get_robustcov_results(cov_type="HC3")
+    predictor_name = x.columns[1]
+    lines.append("[nonrobust vs HC3 robust standard errors]")
+    lines.append(f"{'term':<10}{'coef':>12}{'nonrobust SE':>16}{'nonrobust p':>16}{'HC3 SE':>12}{'HC3 p':>16}")
+    for i, term in enumerate(["const", predictor_name]):
+        lines.append(
+            f"{term:<10}{model.params.iloc[i]:>12.4f}"
+            f"{model.bse.iloc[i]:>16.4f}{model.pvalues.iloc[i]:>16.6g}"
+            f"{robust.bse[i]:>12.4f}{robust.pvalues[i]:>16.6g}"
+        )
+    bp_flags_hetero = bp_p < 0.05
+    lines.append(
+        "Breusch-Pagan p < .05 above, so nonrobust standard errors assume a variance "
+        "structure the data does not have; HC3 recomputes standard errors without that "
+        "assumption. Recomputed coefficients are identical to the nonrobust fit (HC3 "
+        "reweights the covariance matrix only, it does not change point estimates)."
+        if bp_flags_hetero
+        else "Breusch-Pagan did not reject homoscedasticity above, so HC3 and nonrobust "
+        "standard errors are expected to be similar here."
+    )
+    lines.append("")
+
+    return lines
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "hunter_stats.csv",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=Path(__file__).resolve().parent / "outputs",
+    )
+    parser.add_argument(
+        "--exclude-username",
+        action="append",
+        default=[],
+        help="Username(s) to drop before fitting, for sensitivity checks. Repeatable.",
+    )
+    parser.add_argument(
+        "--log-transform",
+        action="store_true",
+        help="Fit log(points) ~ log(reports) instead of the raw-scale model.",
+    )
+    parser.add_argument(
+        "--fgls",
+        action="store_true",
+        help=(
+            "Fit log(points) ~ log(reports) with feasible GLS weights derived from an "
+            "auxiliary variance-function regression, instead of plain OLS. Implies "
+            "--log-transform."
+        ),
+    )
+    args = parser.parse_args()
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+
+    df = load_data(args.csv, exclude_usernames=args.exclude_username)
+
+    aux_model = None
+    if args.fgls:
+        logx = np.log(df["reports"].astype(float))
+        logy = np.log(df["points"].astype(float))
+        model, x, aux_model = fit_fgls(logx, logy)
+        log_transform = True
+    else:
+        log_transform = args.log_transform
+        model, x, y = fit_model(df, log_transform=log_transform)
+
+    plot_scatter_with_fit(df, model, args.out_dir, log_transform=log_transform)
+    plot_residuals_vs_fitted(model, args.out_dir, log_transform=log_transform)
+    plot_scale_location(model, args.out_dir, log_transform=log_transform)
+    plot_qq(model, args.out_dir)
+    plot_residual_histogram(model, args.out_dir)
+
+    lines: list[str] = []
+    if args.fgls:
+        lines.append("Feasible GLS: log(points) ~ log(reports), weights = 1 / predicted variance")
+    elif log_transform:
+        lines.append("Log-log linear regression: log(points) ~ log(reports)")
+    else:
+        lines.append("Simple linear regression: points ~ reports")
+    lines.append(f"N = {len(df)}")
+    lines.append("")
+    if aux_model is not None:
+        lines.append("[auxiliary variance-function regression: log(resid^2) ~ log(reports)]")
+        lines.append(str(aux_model.summary()))
+        lines.append("")
+    lines.append("[model summary]")
+    lines.append(str(model.summary()))
+    lines.append("")
+    lines.extend(run_diagnostics(model, x, df, args.out_dir, log_transform=log_transform))
+
+    (args.out_dir / "assumption_check_results.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"[done] outputs written to {args.out_dir}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+</details>
+
 ## Shannon
 
 <details>
@@ -1815,6 +2422,321 @@ if __name__ == "__main__":
     write_csv(rows)
 
     print(f"[ok] {len(rows)} hunters written -> {OUTPUT_CSV}")
+```
+
+</details>
+
+<details>
+
+<summary>assumption_checks.py — regression diagnostics for entropy_bits ~ rank</summary>
+
+Fits a preliminary OLS regression of entropy\_bits on rank solely to test Pearson/OLS assumptions — Breusch-Pagan homoscedasticity, Shapiro-Wilk normality of both the residuals and entropy\_bits itself, and Cook's-distance outliers — mirroring the same diagnostic battery used for the Reports vs Points analysis. The OLS fit itself is not the reported result; Spearman's rho is.
+
+```python
+"""
+Simple linear regression assumption checks for entropy_bits ~ rank.
+
+Purpose: rank and entropy_bits were compared with Spearman's rho, not Pearson,
+because both variables were expected to violate Pearson/OLS assumptions. This
+script fits a preliminary OLS model (entropy_bits ~ rank) *only* to test those
+assumptions directly, mirroring the same diagnostic battery used in
+Report to Points/regression_assumption_checks/assumption_checks.py for
+points ~ reports. The OLS fit itself is not the reported result.
+
+Model under test: entropy_bits = b0 + b1 * rank + e
+
+Inputs:
+    - hunter_entropy.csv (in this directory)
+
+Outputs (written to ./outputs relative to this script):
+    - scatter_with_fit.png
+    - residuals_vs_fitted.png
+    - qq_plot_residuals.png
+    - residuals_histogram.png
+    - scale_location.png
+    - cooks_distance.png
+    - assumption_check_results.txt
+
+Usage:
+    python assumption_checks.py [--csv PATH] [--out-dir PATH]
+"""
+
+import argparse
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+from scipy import stats
+from statsmodels.stats.diagnostic import het_breuschpagan
+from statsmodels.stats.outliers_influence import OLSInfluence
+from statsmodels.stats.stattools import durbin_watson
+
+
+def load_data(csv_path: Path) -> pd.DataFrame:
+    if not csv_path.exists():
+        raise SystemExit(f"Missing input CSV: {csv_path}")
+    df = pd.read_csv(csv_path)
+    df.columns = [c.strip() for c in df.columns]
+    df["rank"] = pd.to_numeric(df["rank"], errors="coerce")
+    df["entropy_bits"] = pd.to_numeric(df["entropy_bits"], errors="coerce")
+    before = len(df)
+    df = df.dropna(subset=["rank", "entropy_bits"])
+    dropped = before - len(df)
+    print(f"[info] loaded {before} rows, dropped {dropped} with missing rank/entropy_bits, {len(df)} remain")
+    return df.reset_index(drop=True)
+
+
+def fit_model(df: pd.DataFrame):
+    x = sm.add_constant(df["rank"].astype(float))
+    y = df["entropy_bits"].astype(float)
+    model = sm.OLS(y, x).fit()
+    return model, x, y
+
+
+def plot_scatter_with_fit(df: pd.DataFrame, model, out_dir: Path) -> None:
+    x_vals = df["rank"].astype(float)
+    y_vals = df["entropy_bits"].astype(float)
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(x_vals, y_vals, color="#4C72B0", alpha=0.6, edgecolor="white")
+
+    x_line = np.linspace(x_vals.min(), x_vals.max(), 200)
+    y_line = model.params["const"] + model.params["rank"] * x_line
+    ax.plot(x_line, y_line, color="#C44E52", linewidth=2, label="OLS fit")
+
+    ax.set_title("Entropy bits vs rank with fitted OLS line")
+    ax.set_xlabel("Rank")
+    ax.set_ylabel("Entropy bits")
+    ax.legend()
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "scatter_with_fit.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_residuals_vs_fitted(model, out_dir: Path) -> None:
+    fitted = model.fittedvalues
+    resid = model.resid
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(fitted, resid, color="#55A868", alpha=0.6, edgecolor="white")
+    ax.axhline(0, color="#C44E52", linewidth=1.5, linestyle="--")
+    ax.set_title("Residuals vs fitted values")
+    ax.set_xlabel("Fitted entropy_bits")
+    ax.set_ylabel("Residual")
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "residuals_vs_fitted.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_scale_location(model, out_dir: Path) -> None:
+    fitted = model.fittedvalues
+    standardized_resid = OLSInfluence(model).resid_studentized_internal
+    sqrt_abs_resid = np.sqrt(np.abs(standardized_resid))
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.scatter(fitted, sqrt_abs_resid, color="#8172B2", alpha=0.6, edgecolor="white")
+    ax.set_title("Scale-location plot")
+    ax.set_xlabel("Fitted entropy_bits")
+    ax.set_ylabel("sqrt(|standardized residual|)")
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "scale_location.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_qq(model, out_dir: Path) -> None:
+    fig = sm.qqplot(model.resid, line="s")
+    fig.set_size_inches(9, 6)
+    fig.axes[0].set_title("Normal Q-Q plot of residuals")
+    fig.tight_layout()
+    fig.savefig(out_dir / "qq_plot_residuals.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_residual_histogram(model, out_dir: Path) -> None:
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.hist(model.resid, bins=30, color="#4C72B0", edgecolor="white")
+    ax.set_title("Histogram of residuals")
+    ax.set_xlabel("Residual")
+    ax.set_ylabel("Frequency")
+    ax.grid(axis="y", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "residuals_histogram.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_entropy_histogram(df: pd.DataFrame, out_dir: Path) -> None:
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.hist(df["entropy_bits"], bins=20, color="#4C72B0", edgecolor="white")
+    ax.set_title("Histogram of entropy_bits (81 hunters)")
+    ax.set_xlabel("Entropy bits")
+    ax.set_ylabel("Frequency")
+    ax.grid(axis="y", alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "entropy_bits_histogram.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+
+def plot_cooks_distance(model, df: pd.DataFrame, out_dir: Path) -> pd.DataFrame:
+    influence = OLSInfluence(model)
+    cooks_d, _ = influence.cooks_distance
+    n = len(df)
+    threshold = 4 / n
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+    ax.stem(range(n), cooks_d, markerfmt=",")
+    ax.axhline(threshold, color="#C44E52", linewidth=1.5, linestyle="--", label=f"4/n threshold ({threshold:.4f})")
+    ax.set_title("Cook's distance by observation")
+    ax.set_xlabel("Observation index")
+    ax.set_ylabel("Cook's distance")
+    ax.legend()
+    ax.grid(alpha=0.2)
+    fig.tight_layout()
+    fig.savefig(out_dir / "cooks_distance.png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+    flagged = df.assign(cooks_d=cooks_d).loc[lambda d: d["cooks_d"] > threshold]
+    return flagged.sort_values("cooks_d", ascending=False)
+
+
+def run_diagnostics(model, x, df: pd.DataFrame, out_dir: Path) -> list[str]:
+    lines: list[str] = []
+    resid = model.resid
+
+    # Linearity / monotonicity
+    pearson_r, pearson_p = stats.pearsonr(df["rank"], df["entropy_bits"])
+    spearman_rho, spearman_p = stats.spearmanr(df["rank"], df["entropy_bits"])
+    lines.append("[linearity / monotonicity]")
+    lines.append(f"Pearson r (rank, entropy_bits)    = {pearson_r:.4f}")
+    lines.append(f"Pearson p-value                   = {pearson_p:.6g}")
+    lines.append(f"Spearman rho (rank, entropy_bits)  = {spearman_rho:.4f}")
+    lines.append(f"Spearman p-value                  = {spearman_p:.6g}")
+    lines.append("Visual check: see scatter_with_fit.png for linear-vs-curved pattern.")
+    lines.append("")
+
+    # Independence of errors: Durbin-Watson
+    dw = durbin_watson(resid)
+    lines.append("[independence of errors]")
+    lines.append(f"Durbin-Watson statistic        = {dw:.4f}")
+    lines.append("Rule of thumb: values near 2 indicate no autocorrelation; <1 or >3 flag a problem.")
+    lines.append("Caveat: rows have no natural time/sequence order (ordered by rank), so this checks ordering-as-loaded, not a true time series.")
+    lines.append("")
+
+    # Homoscedasticity: Breusch-Pagan
+    bp_stat, bp_p, bp_f, bp_f_p = het_breuschpagan(resid, x)
+    lines.append("[homoscedasticity]")
+    lines.append(f"Breusch-Pagan LM statistic     = {bp_stat:.4f}")
+    lines.append(f"Breusch-Pagan LM p-value       = {bp_p:.6g}")
+    lines.append(f"Breusch-Pagan F statistic      = {bp_f:.4f}")
+    lines.append(f"Breusch-Pagan F p-value        = {bp_f_p:.6g}")
+    lines.append("Null hypothesis: residual variance is constant. p < .05 rejects homoscedasticity.")
+    lines.append("Visual check: see residuals_vs_fitted.png and scale_location.png for funnel shapes.")
+    lines.append("")
+
+    # Normality of residuals: Shapiro-Wilk and Jarque-Bera
+    shapiro_stat, shapiro_p = stats.shapiro(resid)
+    jb_stat, jb_p, skew, kurtosis = sm.stats.jarque_bera(resid)
+    lines.append("[normality of residuals]")
+    lines.append(f"Shapiro-Wilk statistic         = {shapiro_stat:.4f}")
+    lines.append(f"Shapiro-Wilk p-value           = {shapiro_p:.6g}")
+    lines.append(f"Jarque-Bera statistic          = {jb_stat:.4f}")
+    lines.append(f"Jarque-Bera p-value            = {jb_p:.6g}")
+    lines.append(f"Residual skew                  = {skew:.4f}")
+    lines.append(f"Residual kurtosis               = {kurtosis:.4f}")
+    lines.append("Null hypothesis: residuals are normally distributed. p < .05 rejects normality.")
+    lines.append("Visual check: see qq_plot_residuals.png and residuals_histogram.png.")
+    lines.append("")
+
+    # Normality of entropy_bits itself (not just OLS residuals), since Spearman
+    # cares about the marginal distribution of each variable, not residuals of
+    # a linear fit between them.
+    shapiro_entropy_stat, shapiro_entropy_p = stats.shapiro(df["entropy_bits"])
+    lines.append("[normality of entropy_bits itself]")
+    lines.append(f"Shapiro-Wilk statistic         = {shapiro_entropy_stat:.4f}")
+    lines.append(f"Shapiro-Wilk p-value           = {shapiro_entropy_p:.6g}")
+    lines.append("Null hypothesis: entropy_bits is normally distributed. p < .05 rejects normality.")
+    lines.append("")
+
+    # Outliers / influential points: Cook's distance
+    flagged = plot_cooks_distance(model, df, out_dir=out_dir)
+    lines.append("[influential observations]")
+    lines.append(f"Observations flagged above 4/n Cook's distance threshold: {len(flagged)} of {len(df)}")
+    if not flagged.empty:
+        cols = [c for c in ("username", "rank", "entropy_bits", "cooks_d") if c in flagged.columns]
+        lines.append(flagged[cols].head(15).to_string(index=False))
+    lines.append("")
+
+    # Heteroscedasticity-robust standard errors: does HC3 change the conclusions?
+    robust = model.get_robustcov_results(cov_type="HC3")
+    predictor_name = x.columns[1]
+    lines.append("[nonrobust vs HC3 robust standard errors]")
+    lines.append(f"{'term':<10}{'coef':>12}{'nonrobust SE':>16}{'nonrobust p':>16}{'HC3 SE':>12}{'HC3 p':>16}")
+    for i, term in enumerate(["const", predictor_name]):
+        lines.append(
+            f"{term:<10}{model.params.iloc[i]:>12.4f}"
+            f"{model.bse.iloc[i]:>16.4f}{model.pvalues.iloc[i]:>16.6g}"
+            f"{robust.bse[i]:>12.4f}{robust.pvalues[i]:>16.6g}"
+        )
+    bp_flags_hetero = bp_p < 0.05
+    lines.append(
+        "Breusch-Pagan p < .05 above, so nonrobust standard errors assume a variance "
+        "structure the data does not have; HC3 recomputes standard errors without that "
+        "assumption. Recomputed coefficients are identical to the nonrobust fit (HC3 "
+        "reweights the covariance matrix only, it does not change point estimates)."
+        if bp_flags_hetero
+        else "Breusch-Pagan did not reject homoscedasticity above, so HC3 and nonrobust "
+        "standard errors are expected to be similar here."
+    )
+    lines.append("")
+
+    return lines
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--csv",
+        type=Path,
+        default=Path(__file__).resolve().parent / "hunter_entropy.csv",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent / "Outputs" / "assumption_checks",
+    )
+    args = parser.parse_args()
+    args.out_dir.mkdir(parents=True, exist_ok=True)
+
+    df = load_data(args.csv)
+    model, x, y = fit_model(df)
+
+    plot_scatter_with_fit(df, model, args.out_dir)
+    plot_residuals_vs_fitted(model, args.out_dir)
+    plot_scale_location(model, args.out_dir)
+    plot_qq(model, args.out_dir)
+    plot_residual_histogram(model, args.out_dir)
+    plot_entropy_histogram(df, args.out_dir)
+
+    lines: list[str] = []
+    lines.append("Simple linear regression (diagnostic only, not the reported model): entropy_bits ~ rank")
+    lines.append(f"N = {len(df)}")
+    lines.append("")
+    lines.append("[model summary]")
+    lines.append(str(model.summary()))
+    lines.append("")
+    lines.extend(run_diagnostics(model, x, df, args.out_dir))
+
+    (args.out_dir / "assumption_check_results.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"[done] outputs written to {args.out_dir}")
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 </details>
