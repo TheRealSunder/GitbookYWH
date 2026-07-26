@@ -23,7 +23,7 @@ Upon checking the raw data using `stat_checker.py` , there were 3 issues regardi
 
 ## Method: The Preprocessing Pipeline
 
-Three scripts run in sequence to clean the label field; two more are independent supporting scripts.
+Three scripts run in sequence to diagnose and clean the label field.
 
 | Order | Script                    | Role                                                                               |
 | :---: | ------------------------- | ---------------------------------------------------------------------------------- |
@@ -31,25 +31,26 @@ Three scripts run in sequence to clean the label field; two more are independent
 |   2   | `normalize_hacktivity.py` | Collapse legacy labels to canonical names, attach CWEs, delete non-applicable rows |
 |   3   | `stat_checker.py`         | Re-count after normalization, to verify the transformation                         |
 
-| Supporting script                 | Role                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------- |
-| `CWEchecker.py`                   | Builds the CWE → sub-type tree (`cwe_class_map.json`)                      |
-| `parse_stats.py`                  | Flattens per-hunter profile metadata into `hunter_stats.csv`               |
-| `hunter_hacktivity_per_hunter.py` | Counts `New` reports per hunter, for cross-checking against profile totals |
+Supporting scripts are used to check the structure of the raw data while being preprocessed.
 
-Each script below shows the **input** it reads, the **exact code** that turns that input into output, and the **output format** it produces.
+| Supporting script                 | Role                                                                               |
+| --------------------------------- | ---------------------------------------------------------------------------------- |
+| `CWEchecker.py`                   | Maps CWE into their respective bug\_name subtypes and count (`cwe_class_map.json`) |
+| `parse_stats.py`                  | Flattens per-hunter profile stats into `hunter_stats.csv`                          |
+| `hunter_hacktivity_per_hunter.py` | Counts `New` Reports per hunter, for cross-checking against profile totals         |
 
-### `stat_checker.py` — baseline and verification count
+### `stat_checker.py` — Baseline and verification count
 
 {% tabs %}
 {% tab title="Input" %}
-`Codes/hunters/<hunter>/hacktivities.json` for every hunter folder — one JSON array of report objects per hunter, each carrying at least `status`, `bug_name`, and `cwe`. The script is run twice against this same input: once before `normalize_hacktivity.py` touches the files (baseline), and once after (verification).
+Parses the hacktivities.json for every hunter folder and collects reports with a "new" Status. Then for each qualifying report, increment `bug_counter[bug_name]` and `new_bug_reports` if `bug_name` is present.
+
+For the CWE, their count is aggregated towards `cwe_counter` and `new_cwe_reports` which is independent of the bug count aforementioned.
 {% endtab %}
 
 {% tab title="Transform" %}
 ```python
 for report in hacktivities:
-    # Only count reports with status == "new"
     if report.get("status") != "New":
         continue
 
@@ -64,8 +65,6 @@ for report in hacktivities:
         cwe_counter[cwe] += 1
         new_cwe_reports += 1
 ```
-
-Two `Counter` objects accumulate frequencies across every hunter folder; nothing is written back to the source files — this script only reads and tallies.
 {% endtab %}
 
 {% tab title="Output" %}
@@ -79,17 +78,22 @@ New reports with CWE:      32830
 === Bug Types (status = new) ===
  5267  Cross-site Scripting (XSS) - Reflected
  5118  Improper Access Control - Generic
+ 122  OWASP-A7-Cross-Site Scripting (XSS)
+ 110  Not Applicable (CWE-NULL)
+ 45  None Applicable
  ...
 
 === CWEs (status = new) ===
  8787  CWE-79
  5118  CWE-284
+ 100  CWE-922
+ 52  CWE-1392
  ...
 ```
 {% endtab %}
 {% endtabs %}
 
-### `normalize_hacktivity.py` — label normalization
+### `normalize_hacktivity.py` — Label normalization
 
 {% tabs %}
 {% tab title="Input" %}
