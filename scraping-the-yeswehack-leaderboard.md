@@ -2,6 +2,7 @@
 description: >-
   How the YesWeHack all-time leaderboard, hunter profiles, and public hacktivity
   feeds were collected and validated.
+hidden: true
 icon: spider-web
 ---
 
