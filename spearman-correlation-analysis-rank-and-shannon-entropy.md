@@ -19,6 +19,69 @@ Does vulnerability specialization correlate with hunter rank?
 
 **Generalization** refers to the distribution of reporting effort across a wider variety of vulnerability classes, resulting in higher Shannon entropy values.
 
+## How Shannon Entropy Was Constructed
+
+Shannon entropy is a measure of the uncertainty or diversity within a probability distribution. In the context of hunter specialization, it is used to quantify the concentration of a hunter's reports across vulnerability classes.
+
+<table><thead><tr><th width="183">Role</th><th width="138">Variable</th><th>Description</th></tr></thead><tbody><tr><td>Dependent (DV)</td><td><code>rank</code></td><td>The hunter's position on the leaderboard</td></tr><tr><td>Independent (IV)</td><td><code>entropy_bits</code></td><td>Shannon entropy of the hunter's report distribution</td></tr></tbody></table>
+
+{% stepper %}
+{% step %}
+### Read every "New" record
+
+Reads every hacktivity record whose `status` is `"New"`.
+{% endstep %}
+
+{% step %}
+### Group by vulnerability category
+
+Records are grouped per `cwe` identifier, producing a count per category
+{% endstep %}
+
+{% step %}
+### Compute Shannon entropy in bits
+
+Using the standard formula:
+
+$$H = -\sum_{i} p_i \log_2 p_i$$
+
+where $$p_i$$ is the proportion of reports that fall into category $$i$$. The implementation in `shannon.py` is:
+
+```python
+def shannon_entropy(counts: Counter) -> float:
+    total = sum(counts.values())
+    if total == 0:
+        return 0.0
+    h = -sum(
+        (c / total) * math.log2(c / total)
+        for c in counts.values()
+        if c > 0
+    )
+    return h if h > 0 else 0.0
+```
+{% endstep %}
+{% endstepper %}
+
+### Choosing `cwe` over `bug_name`
+
+* `bug names` falling under the same CWE, such as "Reflected XSS", "Stored XSS" and "DOM XSS" which are all under CWE-79 (Cross-site Scripting), having three distinct values would inflate a hunter's entropy score even when the majority of the hunter's reports are concentrated in a single vulnerability class.
+* `cwe` provides a fixed, program-independent category set, so entropy computed over it measures breadth across vulnerability classes rather than breadth across report labels which is what specialization refers to in the Definitions above.
+
+{% hint style="info" %}
+- **Low entropy (close to 0 bits):** The hunter concentrates almost all reports in one or two categories. Their portfolio is narrow and specialized.
+- **High entropy:** Reports are spread across many categories with roughly equal frequency. The hunter is broadly diversified.
+{% endhint %}
+
+Before conducting statistical tests, an assumption check was made to ensure that the data is fit for testing.
+
+As seen in the histogram below, the entropy bits do not exhibit a normal distribution and are heavily skewed to the left.
+
+A shap
+
+<figure><img src=".gitbook/assets/entropy_bits_histogram.png" alt=""><figcaption></figcaption></figure>
+
+
+
 ***
 
 ## Statistical Methods
@@ -39,62 +102,6 @@ Spearman's rank correlation coefficient is used to assess the monotonic relation
 | ---------------- | -------------- | ------------------------------------------------------------ |
 | Independent (IV) | `rank`         | The hunter's position on the leaderboard (lower = better)    |
 | Dependent (DV)   | `entropy_bits` | Shannon entropy of the hunter's report distribution, in bits |
-
-***
-
-## How Shannon Entropy Was Constructed
-
-The entropy values were produced by `shannon.py`. For each hunter, the script:
-
-{% stepper %}
-{% step %}
-### Read every "New" record
-
-Reads every hacktivity record whose `status` is `"New"`.
-{% endstep %}
-
-{% step %}
-### Group by vulnerability category
-
-Groups those records by CWE identifier (`cwe`), producing a count per category. The rationale for using `cwe` rather than the free-text `bug_name` field is covered below.
-{% endstep %}
-
-{% step %}
-### Compute Shannon entropy in bits
-
-Using the standard formula:
-
-$$H = -\sum_{i} p_i \log_2 p_i$$
-
-where $p\_i$ is the proportion of reports that fall into category $i$. The implementation in `shannon.py` is:
-
-```python
-def shannon_entropy(counts: Counter) -> float:
-    total = sum(counts.values())
-    if total == 0:
-        return 0.0
-    h = -sum(
-        (c / total) * math.log2(c / total)
-        for c in counts.values()
-        if c > 0
-    )
-    return h if h > 0 else 0.0
-```
-{% endstep %}
-{% endstepper %}
-
-{% hint style="info" %}
-Only `entropy_bits` (the raw value of $H$) is used in this analysis. Normalizing entropy against the theoretical maximum for a hunter's category count (`entropy_norm = H / log2(k)`) was considered and phased out, because normalization conflates two distinct properties — how evenly spread the reports are and how many categories were touched — making it less suited to a between-hunter comparison on the diversity dimension alone. No `entropy_max` or `entropy_norm` column is produced by `ShannonEntropy.py` or present in `hunter_entropy.csv`.
-{% endhint %}
-
-### Why CWE Instead of `bug_name`
-
-Entropy could be computed over either the free-text `bug_name` field or the standardized `cwe` field present in each hacktivity record. `cwe` was chosen for the following reasons:
-
-* `bug_name` is not a standardized taxonomy. The same underlying weakness can appear under multiple labels — for example, "Reflected XSS", "Stored XSS" and "DOM XSS" are all manifestations of CWE-79 (Cross-site Scripting), but as three distinct `bug_name` values they would inflate a hunter's entropy score even where the underlying work is concentrated in a single vulnerability class.
-* Naming conventions vary by program: the same weakness may be labelled "Reflected XSS", "Non-persistent XSS", "Cross Site Scripting" or "HTML Injection" depending on the platform. Entropy computed over `bug_name` would partly measure differences in labelling conventions rather than differences in the breadth of vulnerability classes a hunter works in.
-* `cwe` provides a fixed, program-independent category set, so entropy computed over it measures breadth across vulnerability classes rather than breadth across report labels — which is what specialization refers to in the Definitions above.
-* `bug_name` is not discarded from the analysis. It remains available as descriptive information about each report, but the entropy calculation itself is based on `cwe`.
 
 ### What the entropy value means for each hunter
 
