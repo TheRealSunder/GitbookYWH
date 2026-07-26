@@ -16,7 +16,7 @@ Upon checking the raw data using `stat_checker.py` , there were 3 issues regardi
 3. **Missing CWE fields.** Legacy-labelled records were never assigned a CWE identifier, so any CWE-keyed aggregation silently dropped them.
 
 {% hint style="info" %}
-**Counting rule.** Only reports with `status == "New"` are counted throughout this page. The full resolution chain (`accepted → resolved → closed`) was considered and rejected: status history is inconsistent across submissions — some reports jump straight from `new` to `closed`, others cycle through intermediate states. Counting `new` gives exactly one stable, non-duplicated observation per report.
+**Counting rule.** Only reports with `status == "New"` are counted throughout this page. Initially, a full resolution chain (`new -> accepted -> resolved -> closed`) was considered; however, status history is inconsistent across submissions as seen from the hacktivities of some hunters. Some reports jump straight from `new` to `closed`, others cycle through intermediate states. Counting `new` gives exactly one stable, non-duplicated observation per report.
 {% endhint %}
 
 ***
@@ -43,6 +43,25 @@ Supporting scripts are used to check the structure of the raw data while being p
 
 {% tabs %}
 {% tab title="Input" %}
+```json
+  { //hacktivities.json
+    "date": "2019-05-24",
+    "date_raw": "2019-05-24",
+    "bug_name": "Brute Force",
+    "cwe": "CWE-307",
+    "bug_type_raw": "Brute Force (CWE-307)",
+    "status": "New"
+  },
+    {
+    "date": "2019-05-14",
+    "date_raw": "2019-05-14",
+    "bug_name": "OWASP-2013-A5-Security Misconfiguration",
+    "cwe": null,
+    "bug_type_raw": "OWASP-2013-A5-Security Misconfiguration",
+    "status": "Resolved"
+  },
+```
+
 Parses the hacktivities.json for every hunter folder and collects reports with a "new" Status. Then for each qualifying report, increment `bug_counter[bug_name]` and `new_bug_reports` if `bug_name` is present.
 
 For the CWE, their count is aggregated towards `cwe_counter` and `new_cwe_reports` which is independent of the bug count aforementioned.
@@ -192,11 +211,11 @@ All statuses are counted and transformed regardless of status.
 {% endtab %}
 {% endtabs %}
 
-### `CWEchecker.py` — CWE → sub-type tree
+### `CWEchecker.py` — CWE to sub-type tree
 
 {% tabs %}
 {% tab title="Input" %}
-In order to test the assumption in one of the statistical tests (Shannon Entropy) that grouping vulnerability reports by CWE rather than by bug\_name does not discard a meaningful amount of technique-level information.
+To test the assumption in one of the statistical tests (Shannon Entropy) that grouping vulnerability reports by CWE rather than by bug\_name does not discard a meaningful amount of technique-level information.
 {% endtab %}
 
 {% tab title="Transform" %}
@@ -226,11 +245,34 @@ A tree printed to stdout, and the same structure serialized to `Outputs/cwe_clas
     "counts": { "Use of Vulnerable Third-Party Component": 90 }
   }
 }
+  "CWE-79": {
+    "sub_types": [
+      "Cross-site Scripting (XSS) - DOM",
+      "Cross-site Scripting (XSS) - Generic",
+      "Cross-site Scripting (XSS) - Reflected",
+      "Cross-site Scripting (XSS) - Stored",
+      "HTML Injection"
+    ],
+    "counts": {
+      "Cross-site Scripting (XSS) - Generic": 2717,
+      "Cross-site Scripting (XSS) - Stored": 4146,
+      "Cross-site Scripting (XSS) - DOM": 1501,
+      "Cross-site Scripting (XSS) - Reflected": 13150,
+      "HTML Injection": 1104
+    }
+  "CWE-284": {
+    "sub_types": [
+      "Improper Access Control - Generic"
+    ],
+    "counts": {
+      "Improper Access Control - Generic": 12920
+    }
+  },
 ```
 
 Current run: 81 hunters scanned, 83,675 records (all statuses), 90 distinct CWE keys.
 
-* 86 out of 90 CWEs map to one-to-one with a single bug\_name
+* 86 out of 90 CWEs map one-to-one with a single bug\_name
 * CWE-16 maps to 3 sub-types
 * CWE 79 maps to 5 sub-types
 {% endtab %}
@@ -240,7 +282,7 @@ Current run: 81 hunters scanned, 83,675 records (all statuses), 90 distinct CWE 
 
 {% tabs %}
 {% tab title="Input" %}
-`Codes/hunters/<hunter>/stats.json` — one profile summary object per hunter.
+`Codes/hunters/<hunter>/stats.json` The stats.json for each hunter is parsed, generating a CSV file containing the `"username", "joined", "impact", "reports", "points", "rank", "country"`
 {% endtab %}
 
 {% tab title="Transform" %}
@@ -249,12 +291,12 @@ COLUMNS = ["username", "joined", "impact", "reports", "points", "rank", "country
 ...
 rows.append({col: data.get(col, "") for col in COLUMNS})
 ```
-
-Each hunter's profile JSON is reduced to exactly these seven fields, with missing fields defaulting to an empty string rather than raising.
 {% endtab %}
 
 {% tab title="Output" %}
 `Outputs/hunter_stats.csv`, header + one row per hunter (81 rows currently):
+
+The generated CSV file was manually checked and verified that there were no missing values or wrong data types.
 
 ```csv
 username,joined,impact,reports,points,rank,country
@@ -268,7 +310,7 @@ username,joined,impact,reports,points,rank,country
 
 {% tabs %}
 {% tab title="Input" %}
-`Codes/hunters/<hunter>/hacktivities.json` for every hunter folder.
+`Codes/hunters/<hunter>/hacktivities.json` Parses each hacktivity and gets the total reports from each hunter; only uses the `new` status.&#x20;
 {% endtab %}
 
 {% tab title="Transform" %}
@@ -283,7 +325,7 @@ report_count = sum(
 {% tab title="Output" %}
 A CSV sorted by count descending, `hunter,hacktivity_report_count`:
 
-```
+```csv
 hunter,hacktivity_report_count
 rabhi,5610
 Xiety,1520
@@ -307,7 +349,7 @@ drak3hft7,1211
 | Distinct `bug_name` labels                |     117 |
 | Distinct CWE identifiers                  |      90 |
 
-### Legacy → Canonical Mapping
+### Legacy -> Canonical Mapping
 
 Each legacy label is mapped to the canonical name and CWE that already describes the same weakness elsewhere in the dataset, so OWASP 2013/2017 phrasing and the modern label collapse into one identifier instead of being counted as separate outcomes.
 
@@ -355,7 +397,7 @@ Records flagged as `Not Applicable (CWE-NULL)`  and `None Applicable` carry no e
 | Distinct `bug_name` labels  |     98 |
 | Distinct CWE identifiers    |     90 |
 
-* `cwe` rose by 819 (32,830 → 33,649). The 974-record gap resolves as `155 deleted + 819 relabelled = 974`.
+* `cwe` rose by 819 (32,830 -> 33,649). The 974-record gap resolves as `155 deleted + 819 relabelled = 974`.
 * Distinct labels fell from 117 to 98: 23 legacy labels went to zero, 4 canonical labels appeared for the first time (`Server Misconfiguration`, `Use of Vulnerable Third-Party Component`, `XML External Entity (XXE)`, `Insufficient Logging`).
 * Distinct CWE count is unchanged at 90.
 
