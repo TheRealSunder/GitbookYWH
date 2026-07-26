@@ -21,7 +21,10 @@ The analysis covers **81 public hunter profiles** drawn from a dataset of 100 ra
 
 ## Hypotheses
 
-<table><thead><tr><th width="97">Symbol</th><th>Statement</th></tr></thead><tbody><tr><td><strong>H₀</strong></td><td>There is no relationship between reports and total points earned (ρ = 0)</td></tr><tr><td><strong>Hₐ</strong></td><td>There is a relationship between reports and total points earned (ρ ≠ 0)</td></tr></tbody></table>
+| Symbol | Statement                                                                |
+| ------ | ------------------------------------------------------------------------ |
+| **H₀** | There is no relationship between reports and total points earned (ρ = 0) |
+| **Hₐ** | There is a relationship between reports and total points earned (ρ ≠ 0)  |
 
 Significance level: **α = 0.05**
 
@@ -31,7 +34,7 @@ Significance level: **α = 0.05**
 
 Each hunter's data is stored in a per-folder `stats.json` file and loaded into a single pandas DataFrame before analysis.
 
-The report count that will be used in this analysis is from `stats.json`, not `hacktivities.json`
+The report count used in this analysis is taken from `stats.json`, not `hacktivities.json`.
 
 **Directory layout**
 
@@ -93,11 +96,17 @@ Extreme values are present in both variables. The maximum report count (5,610, f
 {% endstep %}
 
 {% step %}
+### Homoscedasticity
+
+Pearson's r also assumes that the spread of one variable stays roughly consistent across the range of the other, rather than fanning out. A preliminary linear fit of points on reports was used only to check this: a Breusch-Pagan test on its residuals rejected constant variance (p = 0.010), meaning prediction errors grow larger as reports and points increase rather than staying evenly sized. This is a fourth reason Pearson is unsuitable here, alongside non-normality, skew, and outliers. Spearman carries no equivalent requirement, since it correlates ranks rather than raw magnitudes.
+{% endstep %}
+
+{% step %}
 ### Monotonicity
 
 Exploratory scatter plots show a consistently increasing, monotonic relationship between reports and points rather than a straight-line one.
 
-<div><figure><img src=".gitbook/assets/Screenshot 2026-07-26 233736.png" alt=""><figcaption><p>Reports and Points scatter plot with outlier</p></figcaption></figure> <figure><img src=".gitbook/assets/Screenshot 2026-07-26 233706.png" alt=""><figcaption><p>Reports and Points scatter plot with outlier</p></figcaption></figure></div>
+<div><figure><img src="https://1663867449-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FQijVmevsxGIaeCOIXb92%2Fuploads%2FLhVUit28Z8e71dV3udEH%2FScreenshot%202026-07-26%20233736.png?alt=media&#x26;token=4463bb4c-cac2-421d-ab47-8ec55b704b10" alt=""><figcaption><p>Reports vs Points scatter plot, including the outlier hunter</p></figcaption></figure> <figure><img src="https://1663867449-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FQijVmevsxGIaeCOIXb92%2Fuploads%2FOoQVClUHLFuA9ATLHFWr%2FScreenshot%202026-07-26%20233706.png?alt=media&#x26;token=4d1c63b9-e459-42df-b6c3-48670fee8575" alt=""><figcaption><p>Same scatter plot with the outlier hunter removed, showing the relationship among the remaining hunters</p></figcaption></figure></div>
 {% endstep %}
 {% endstepper %}
 
@@ -107,12 +116,13 @@ Exploratory scatter plots show a consistently increasing, monotonic relationship
 
 **Spearman's rank correlation** was selected for the following reasons:
 
-| Condition                                       | Status                             |
-| ----------------------------------------------- | ---------------------------------- |
-| Monotonic (not necessarily linear) relationship | ✓ Confirmed by scatter             |
-| Heavy right skew in both variables              | ✓ Skewness ≈ 6.8–7.0               |
-| Outliers present                                | ✓ Max ≈ 12× mean                   |
-| Normality required by Pearson                   | ✗ Violated (Shapiro-Wilk p < .001) |
+| Condition                                       | Status                               |
+| ----------------------------------------------- | ------------------------------------ |
+| Monotonic (not necessarily linear) relationship | ✓ Confirmed by scatter               |
+| Heavy right skew in both variables              | ✓ Skewness ≈ 6.8–7.0                 |
+| Outliers present                                | ✓ Max ≈ 12× mean                     |
+| Normality required by Pearson                   | ✗ Violated (Shapiro-Wilk p < .001)   |
+| Homoscedasticity required by Pearson            | ✗ Violated (Breusch-Pagan p = 0.010) |
 
 Spearman correlates the **ranks** of the values rather than the values themselves. This makes it robust to the heavy right tail that leaderboard fields tend to have and detects any monotone relationship rather than only a linear one.
 
@@ -138,17 +148,20 @@ The table below summarises central tendency, spread, and distributional shape fo
 
 ## Results
 
-Spearman's rank correlation was computed for three variable pairs. The points–rank pair is discussed separately because it is a structural relationship, not a behavioural finding.
+Spearman's rank correlation was computed for two variable pairs: reports against points, and reports against rank.
 
-<table><thead><tr><th>Variables</th><th width="62">n</th><th width="113">Spearman ρ</th><th width="132">p-value</th><th>Interpretation</th></tr></thead><tbody><tr><td>Reports vs Points</td><td>81</td><td>+0.875</td><td>1.33e-26</td><td>Very strong positive</td></tr><tr><td>Reports vs Rank</td><td>81</td><td>−0.875</td><td>1.33e-26</td><td>Very strong negative</td></tr></tbody></table>
+| Variables         | n  | Spearman ρ | p-value  | Interpretation       |
+| ----------------- | -- | ---------- | -------- | -------------------- |
+| Reports vs Points | 81 | +0.875     | 1.33e-26 | Very strong positive |
+| Reports vs Rank   | 81 | −0.875     | 1.33e-26 | Very strong negative |
 
 {% tabs %}
 {% tab title="Reports vs. Points" %}
-A very strong positive monotonic correlation was found between accepted reports and total points earned. Because p < α = 0.05, we **reject the null hypothesis** and conclude that **hunters with more accepted reports consistently earn more points**.
+A very strong positive monotonic correlation was found between accepted reports and total points earned. Because p < α = 0.05, the null hypothesis is rejected: hunters with more accepted reports are found to consistently earn more points.
 {% endtab %}
 
 {% tab title="Reports vs. Rank" %}
-The strong negative correlation between reports and rank remains consistent since **a** **lower rank number denotes a higher standing.** Hence, more reports translate to a better rank. This pair mirrors the reports–points finding and adds no independent information.
+The strong negative correlation between reports and rank remains consistent since a lower rank number denotes a higher standing. Hence, more reports translate to a better rank. This pair mirrors the reports–points finding and adds no independent information.
 {% endtab %}
 {% endtabs %}
 
