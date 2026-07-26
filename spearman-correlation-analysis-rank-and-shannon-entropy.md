@@ -128,7 +128,7 @@ Both coefficients are negligible; neither test suggests a relationship that the 
 
 ### Normality
 
-A Shapiro-Wilk test on `entropy_bits` itself rejects normality (W = 0.8548, p = 2.06 × 10⁻⁷), and the same test on the preliminary regression's residuals agrees (W = 0.8559, p = 2.24 × 10⁻⁷, skew = −1.62, kurtosis = 6.11). The histogram shows why: the distribution has a heavy left tail, with several hunters clustered at low entropy while most sit closer to the middle of the range.
+Based on the histogram below, which is heavily skewed to the left, `entropy_bits` does not observe a normal distribution. A Shapiro-Wilk test confirms this: `entropy_bits` itself rejects normality (W = 0.8548, p = 2.06 × 10⁻⁷), as does the same test on the preliminary regression's residuals (W = 0.8559, p = 2.24 × 10⁻⁷, skew = −1.62, kurtosis = 6.11).
 
 ### Outliers
 
@@ -214,7 +214,3 @@ The correlation coefficient of $\rho = 0.0147$ is negligible in magnitude and cl
 {% hint style="info" %}
 The p-value of $0.8966$ is far above $\alpha = 0.05$. The null hypothesis cannot be rejected. There is **no statistically significant association** between a hunter's leaderboard rank and their Shannon entropy (diversification) across vulnerability categories, measured by CWE, in this dataset.
 {% endhint %}
-
-\` placeholders now; the Linearity/Monotonicity and Homoscedasticity subsections keep their numeric results but no longer point at scatter\_with\_fit.png, residuals\_vs\_fitted.png, scale\_location.png, or qq\_plot\_residuals.png. \`residuals\_histogram.png\` (OLS residuals) was also swapped out in favor of a new \`entropy\_bits\_histogram.png\` (added to \`assumption\_checks.py\` via \`plot\_entropy\_histogram()\`), since the normality claim being illustrated is about the marginal distribution of \`entropy\_bits\` itself, not residuals of the diagnostic-only OLS fit — using the residual histogram there would have shown the wrong distribution for the claim being made. All script outputs (unused ones included) remain on disk in \`Shannon/Outputs/assumption\_checks/\` in case they're wanted later; only the doc's image references were trimmed.
-
-\-->
