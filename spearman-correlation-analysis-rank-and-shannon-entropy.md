@@ -3,6 +3,24 @@ description: >-
   Does vulnerability specialization, measured via Shannon entropy over CWE
   categories, correlate with hunter rank?
 icon: shuffle
+layout:
+  width: default
+  title:
+    visible: true
+  description:
+    visible: true
+  tableOfContents:
+    visible: true
+  outline:
+    visible: true
+  pagination:
+    visible: true
+  metadata:
+    visible: true
+  tags:
+    visible: true
+  actions:
+    visible: true
 ---
 
 # Spearman Correlation Analysis: Rank and Shannon Entropy
